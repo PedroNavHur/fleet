@@ -1,0 +1,167 @@
+#!/usr/bin/env bash
+# Make this machine's agent skills match the fleet repo.
+#
+#   bin/sync            show the plan, change nothing
+#   bin/sync --apply    pull the repo, then carry out the plan
+#
+# Own skills (skills/*) are symlinked into ~/.agents/skills, which Codex,
+# Cursor, and OpenCode read, and into ~/.claude/skills for Claude Code.
+# Third-party skills (third-party.json) are installed and updated with
+# `npx skills`. Anything else in the skill folders is moved to
+# ~/.skills-backups/fleet-<timestamp>/ rather than deleted.
+# Written for bash 3.2 so it runs on stock macOS.
+set -euo pipefail
+
+FLEET=$(cd "$(dirname "$0")/.." && pwd)
+APPLY=0
+for arg in "$@"; do
+  case "$arg" in
+    --apply) APPLY=1 ;;
+    -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "unknown option: $arg" >&2; exit 2 ;;
+  esac
+done
+
+AGENTS_DIR="$HOME/.agents/skills"
+CLAUDE_DIR="$HOME/.claude/skills"
+BIN_DIR="$HOME/.local/bin"
+# Folders the skills CLI no longer installs into globally; same-named copies
+# there shadow or duplicate ~/.agents/skills.
+EXTRA_DIRS="$HOME/.codex/skills $HOME/.cursor/skills $HOME/.config/opencode/skills"
+# Managed by Claude.ai sync and by Codex itself.
+PROTECTED="synced .system"
+NPX_AGENTS="claude-code codex cursor opencode"
+BACKUP="$HOME/.skills-backups/fleet-$(date +%Y%m%d-%H%M%S)"
+
+if [ "$APPLY" = 1 ]; then
+  git -C "$FLEET" pull --ff-only --quiet
+fi
+
+OWN=$(cd "$FLEET/skills" && ls)
+THIRD=$(python3 -c 'import json,sys
+for src,names in json.load(open(sys.argv[1]))["sources"].items():
+    for n in names: print(src, n)' "$FLEET/third-party.json")
+THIRD_NAMES=$(echo "$THIRD" | awk '{print $2}')
+LOCKED=$(python3 -c 'import json,os
+p=os.path.expanduser("~/.agents/.skill-lock.json")
+print("\n".join(json.load(open(p))["skills"]) if os.path.exists(p) else "")')
+
+has() { printf '%s\n' "$2" | grep -qxF -- "$1"; }
+is_protected() { case " $PROTECTED " in *" $1 "*) return 0 ;; esac; return 1; }
+short() { case "$1" in "$HOME"/*) echo "~/${1#"$HOME"/}" ;; *) echo "$1" ;; esac; }
+say() { printf '  %-10s %s\n' "$1" "$2"; }
+exists() { [ -e "$1" ] || [ -L "$1" ]; }
+
+PLANNED=0
+step() { PLANNED=$((PLANNED + 1)); say "$1" "$2"; [ "$APPLY" = 1 ]; }
+
+# Move a path into the backup folder, keeping its home-relative layout.
+retire() {
+  step "$2" "$(short "$1")" || return 0
+  local dest="$BACKUP/${1#"$HOME"/}"
+  mkdir -p "$(dirname "$dest")"
+  mv "$1" "$dest"
+}
+
+# Point $2 at $1, retiring whatever is there now.
+ensure_link() {
+  [ -L "$2" ] && [ "$(readlink "$2")" = "$1" ] && return 0
+  exists "$2" && retire "$2" replace
+  step link "$(short "$2") -> $(short "$1")" || return 0
+  mkdir -p "$(dirname "$2")"
+  ln -s "$1" "$2"
+}
+
+echo "== Own skills ($(echo "$OWN" | wc -l | tr -d ' ') in $(short "$FLEET")/skills)"
+for name in $OWN; do
+  ensure_link "$FLEET/skills/$name" "$AGENTS_DIR/$name"
+  ensure_link "$FLEET/skills/$name" "$CLAUDE_DIR/$name"
+done
+
+echo "== Third-party skills ($(echo "$THIRD_NAMES" | wc -l | tr -d ' ') in third-party.json)"
+MISSING=""
+for name in $THIRD_NAMES; do
+  agents_entry="$AGENTS_DIR/$name"
+  if has "$name" "$LOCKED" && [ -d "$agents_entry" ] && [ ! -L "$agents_entry" ]; then
+    ensure_link "../../.agents/skills/$name" "$CLAUDE_DIR/$name"
+    continue
+  fi
+  # Present but not installed by the skills CLI (for example a manual copy):
+  # back it up so the CLI can install a tracked copy in its place.
+  for path in "$agents_entry" "$CLAUDE_DIR/$name"; do
+    if exists "$path"; then retire "$path" reinstall; fi
+  done
+  say install "$name"
+  MISSING="$MISSING $name"
+done
+for name in $LOCKED; do
+  has "$name" "$THIRD_NAMES" && continue
+  step forget "$name (skills lock entry not in third-party.json)" || continue
+  FORGET="${FORGET:-} $name"
+done
+
+echo "== Unmanaged entries"
+for dir in "$AGENTS_DIR" "$CLAUDE_DIR" $EXTRA_DIRS; do
+  [ -d "$dir" ] || continue
+  for path in "$dir"/* "$dir"/.[!.]*; do
+    exists "$path" || continue
+    name=$(basename "$path")
+    is_protected "$name" && continue
+    if [ "$dir" = "$AGENTS_DIR" ] || [ "$dir" = "$CLAUDE_DIR" ]; then
+      has "$name" "$OWN" && continue
+      has "$name" "$THIRD_NAMES" && continue
+      retire "$path" unmanaged
+    elif has "$name" "$OWN" || has "$name" "$THIRD_NAMES"; then
+      retire "$path" duplicate
+    else
+      retire "$path" unmanaged
+    fi
+  done
+done
+
+echo "== Commands and dependencies"
+while read -r cmd rel; do
+  case "$cmd" in ''|'#'*) continue ;; esac
+  ensure_link "$FLEET/$rel" "$BIN_DIR/$cmd"
+done < "$FLEET/bin-links"
+for pkg in "$FLEET"/skills/*/package.json; do
+  [ -e "$pkg" ] || continue
+  dir=$(dirname "$pkg")
+  [ -d "$dir/node_modules" ] && continue
+  step npm-deps "$(short "$dir")" || continue
+  if command -v pnpm >/dev/null; then
+    (cd "$dir" && pnpm install --frozen-lockfile --silent)
+  else
+    (cd "$dir" && npx --yes pnpm install --frozen-lockfile --silent)
+  fi
+done
+
+if [ "$APPLY" = 0 ]; then
+  echo
+  [ "$PLANNED" = 0 ] && echo "Already in sync."
+  echo "Dry run: nothing changed. Re-run with --apply to carry out the plan."
+  echo "--apply also updates every third-party skill to its latest version."
+  exit 0
+fi
+
+for name in ${FORGET:-}; do
+  npx --yes skills remove -g -y "$name" </dev/null >/dev/null
+done
+
+if [ -n "$MISSING" ]; then
+  echo "$THIRD" | while read -r src name; do
+    case " $MISSING " in *" $name "*) echo "$src $name" ;; esac
+  done | awk '{a[$1]=a[$1]" "$2} END {for (s in a) print s a[s]}' |
+  while read -r src names; do
+    echo "== npx skills add $src:$names"
+    # shellcheck disable=SC2086
+    npx --yes skills add "$src" -g -y -a $NPX_AGENTS -s $names </dev/null
+  done
+fi
+
+echo "== npx skills update"
+# shellcheck disable=SC2086
+npx --yes skills update -g -y $THIRD_NAMES </dev/null
+
+if [ -d "$BACKUP" ]; then echo "Retired entries are in $(short "$BACKUP")"; fi
+echo "Done."
