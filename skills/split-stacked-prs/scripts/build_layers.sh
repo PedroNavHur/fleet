@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# Build (or rebuild) one branch per layer from the source tip.
+#
+# Run inside the temporary worktree, never the user's checkout. Layers come
+# from MANIFEST_DIR in sorted order (format in lib.sh); each becomes its branch
+# (header or PREFIX<name>), committed on the previous layer. Plain paths are
+# taken whole from the source and files deleted there are removed. A layer
+# with ~paths (in-between versions of a file whose final version is in a later
+# layer) needs an executable MANIFEST_DIR/hooks/<name> that writes them; the
+# hook may also edit the layer's whole files. A change outside the manifest is
+# an error. A message file MSG_DIR/<name> is used when present.
+# Commits skip hooks: run the layer gates afterwards (layer_gates.sh).
+#
+# Usage:
+#   build_layers.sh --base REF --source REF --manifests DIR [--prefix PREFIX] [--msgs DIR]
+set -euo pipefail
+
+base= source= manifests= prefix= msgs=
+while (($#)); do
+  case $1 in
+    --base) base=$2; shift 2 ;;
+    --source) source=$2; shift 2 ;;
+    --manifests) manifests=$2; shift 2 ;;
+    --prefix) prefix=$2; shift 2 ;;
+    --msgs) msgs=$2; shift 2 ;;
+    -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
+    *) echo "unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+[[ -n $base && -n $source && -n $manifests ]] || { sed -n '2,15p' "$0" >&2; exit 2; }
+
+script_dir=$(cd "$(dirname "$0")" && pwd)
+. "$script_dir/lib.sh"
+manifests=$(cd "$manifests" && pwd)
+python3 "$script_dir/check_manifests.py" "$base" "$source" "$manifests" --require-hooks
+
+if [[ -n $(git status --porcelain) ]]; then
+  echo "uncommitted or untracked files in $(git rev-parse --show-toplevel); clean the worktree first" >&2
+  exit 1
+fi
+base_sha=$(git rev-parse "$base^{commit}")
+source_sha=$(git rev-parse "$source^{commit}")
+parent=$base_sha
+git checkout -q --detach "$parent"
+
+for name in $(layer_names "$manifests"); do
+  branch=$(layer_branch "$manifests" "$name" "$prefix")
+  [[ -n $prefix || -n $(manifest_header "$manifests" "$name" branch) ]] ||
+    { echo "$name: no '# branch:' header and no --prefix" >&2; exit 2; }
+  git checkout -q -B "$branch" "$parent"
+  apply_whole "$source_sha" "$manifests/$name"
+  run_hook "$manifests" "$name" "$source_sha" "$base_sha" "$parent"
+  git add -A
+  stray=$(comm -23 <(git -c core.quotePath=false diff --cached --name-only --no-renames "$parent" | sort) \
+    <({ whole_paths "$manifests/$name"; staged_paths "$manifests/$name"; } | sort -u))
+  if [[ -n $stray ]]; then
+    echo "$name: changes outside its manifest (hook or stray file):" >&2
+    sed 's/^/  /' <<<"$stray" >&2
+    exit 1
+  fi
+  if git diff --cached --quiet "$parent"; then
+    echo "$name: the layer changes nothing" >&2
+    exit 1
+  fi
+  if [[ -n $msgs && -f $msgs/$name ]]; then
+    git -c core.hooksPath=/dev/null commit -q -F "$msgs/$name"
+  else
+    git -c core.hooksPath=/dev/null commit -q -m "wip: $name"
+  fi
+  parent=$(git rev-parse HEAD)
+  printf '%s %s\n' "$(git rev-parse --short HEAD)" "$branch"
+done
+
+if git diff --quiet "$source_sha" HEAD; then
+  echo "top tree equals source"
+else
+  echo "TOP TREE DIFFERS from source:" >&2
+  git diff --stat "$source_sha" HEAD | tail -5 >&2
+  exit 1
+fi

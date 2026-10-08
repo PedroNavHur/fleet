@@ -1,0 +1,7 @@
+interface:
+  display_name: "Outcome Oriented Execution"
+  short_description: "Converge on the target architecture"
+  default_prompt: "Use $principle-outcome-oriented-execution to sequence this migration."
+
+policy:
+  allow_implicit_invocation: false

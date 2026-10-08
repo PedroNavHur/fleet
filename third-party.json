@@ -1,0 +1,88 @@
+{
+  "$comment": "Third-party skills installed on every machine with `npx skills add <source> -g -s <skill>`. Their files are not copied into this repo.",
+  "sources": {
+    "anthropics/skills": [
+      "frontend-design"
+    ],
+    "blader/humanizer": [
+      "humanizer"
+    ],
+    "cloudflare/skills": [
+      "agents-sdk",
+      "cloudflare",
+      "cloudflare-email-service",
+      "cloudflare-one",
+      "cloudflare-one-migrations",
+      "durable-objects",
+      "sandbox-stable",
+      "turnstile-spin",
+      "web-perf",
+      "workers-best-practices",
+      "wrangler"
+    ],
+    "cursor/plugins": [
+      "create-verification-skill"
+    ],
+    "mattpocock/skills": [
+      "ask-matt",
+      "chief-of-staff",
+      "claude-handoff",
+      "code-review",
+      "codebase-design",
+      "diagnosing-bugs",
+      "domain-modeling",
+      "git-guardrails-claude-code",
+      "grill-me",
+      "grill-with-docs",
+      "grilling",
+      "handoff",
+      "implement",
+      "implement-spec",
+      "improve-codebase-architecture",
+      "loop-me",
+      "migrate-to-shoehorn",
+      "pr",
+      "prototype",
+      "research",
+      "retro",
+      "scaffold-exercises",
+      "setup-matt-pocock-skills",
+      "setup-pre-commit",
+      "setup-ts-deep-modules",
+      "tdd",
+      "teach",
+      "to-questionnaire",
+      "to-spec",
+      "to-tickets",
+      "triage",
+      "wait-what",
+      "wayfinder",
+      "wizard",
+      "writing-beats",
+      "writing-for-agents",
+      "writing-fragments",
+      "writing-shape"
+    ],
+    "openai/skills": [
+      "linear"
+    ],
+    "pbakaus/impeccable": [
+      "impeccable"
+    ],
+    "shadcn-ui/ui": [
+      "shadcn"
+    ],
+    "vercel-labs/agent-skills": [
+      "vercel-composition-patterns",
+      "vercel-react-best-practices",
+      "web-design-guidelines"
+    ],
+    "vercel-labs/skills": [
+      "find-skills"
+    ],
+    "wshobson/agents": [
+      "tailwind-design-system",
+      "typescript-advanced-types"
+    ]
+  }
+}

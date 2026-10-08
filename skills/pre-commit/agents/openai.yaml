@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pre-commit"
+  short_description: "Run repository checks before committing"
+  default_prompt: "Use $pre-commit to run format, lint, typecheck, and tests as one host-check job."

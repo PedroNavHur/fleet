@@ -1,0 +1,7 @@
+interface:
+  display_name: "Encode Lessons In Structure"
+  short_description: "Turn repeated corrections into checks"
+  default_prompt: "Use $principle-encode-lessons-in-structure to turn this recurring review note into a lint."
+
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Luna + Opus Thermos Review"
+  short_description: "Run both Thermos reviews in one audit"
+  default_prompt: "Use $luna-opus-thermos-review to audit this branch against main."

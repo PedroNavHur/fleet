@@ -1,0 +1,4 @@
+interface:
+  display_name: "Suzuka Review Fix"
+  short_description: "Verify and commit fixes for Suzuka feedback"
+  default_prompt: "Use $suzuka-review-fix to assess Suzuka's current PR comments, fix verified findings, and create one descriptive local commit."

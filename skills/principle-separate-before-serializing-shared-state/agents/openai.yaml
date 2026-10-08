@@ -1,0 +1,7 @@
+interface:
+  display_name: "Separate Before Serializing"
+  short_description: "Remove sharing before adding locks"
+  default_prompt: "Use $principle-separate-before-serializing-shared-state to review this concurrent writer."
+
+policy:
+  allow_implicit_invocation: false

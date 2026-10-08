@@ -1,0 +1,11 @@
+{
+  "name": "@local/axe-review",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.34.5",
+  "dependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "playwright": "1.62.1"
+  }
+}

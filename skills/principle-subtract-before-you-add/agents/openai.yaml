@@ -1,0 +1,7 @@
+interface:
+  display_name: "Subtract Before You Add"
+  short_description: "Delete dead weight, then build"
+  default_prompt: "Use $principle-subtract-before-you-add before I start this refactor."
+
+policy:
+  allow_implicit_invocation: false

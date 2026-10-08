@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linear Issue"
+  short_description: "Create clear Linear issues from conversation context"
+  default_prompt: "Use $linear-issue to create a Linear issue from this request."

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Architect"
+  short_description: "Sketch types and modules before code"
+  default_prompt: "Use $architect to design this feature before I write any code."
+
+policy:
+  allow_implicit_invocation: false
