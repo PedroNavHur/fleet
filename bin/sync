@@ -91,7 +91,7 @@ for name in $THIRD_NAMES; do
   for path in "$agents_entry" "$CLAUDE_DIR/$name"; do
     if exists "$path"; then retire "$path" reinstall; fi
   done
-  say install "$name"
+  step install "$name" || true
   MISSING="$MISSING $name"
 done
 for name in $LOCKED; do
@@ -148,20 +148,32 @@ for name in ${FORGET:-}; do
   npx --yes skills remove -g -y "$name" </dev/null >/dev/null
 done
 
-if [ -n "$MISSING" ]; then
+# Print "<source> <skill>..." for each source with skills to install.
+missing_by_source() {
   echo "$THIRD" | while read -r src name; do
     case " $MISSING " in *" $name "*) echo "$src $name" ;; esac
-  done | awk '{a[$1]=a[$1]" "$2} END {for (s in a) print s a[s]}' |
+  done | awk '{a[$1]=a[$1]" "$2} END {for (s in a) print s a[s]}'
+}
+
+# Keep going when one source fails, and report every failure at the end.
+FAILED=""
+if [ -n "$MISSING" ]; then
   while read -r src names; do
     echo "== npx skills add $src:$names"
     # shellcheck disable=SC2086
-    npx --yes skills add "$src" -g -y -a $NPX_AGENTS -s $names </dev/null
-  done
+    if ! npx --yes skills add "$src" -g -y -a $NPX_AGENTS -s $names </dev/null; then
+      FAILED="$FAILED $src"
+    fi
+  done < <(missing_by_source)
 fi
 
 echo "== npx skills update"
 # shellcheck disable=SC2086
-npx --yes skills update -g -y $THIRD_NAMES </dev/null
+npx --yes skills update -g -y $THIRD_NAMES </dev/null || FAILED="$FAILED update"
 
 if [ -d "$BACKUP" ]; then echo "Retired entries are in $(short "$BACKUP")"; fi
+if [ -n "$FAILED" ]; then
+  echo "Failed:$FAILED. Fix third-party.json or the network, then re-run." >&2
+  exit 1
+fi
 echo "Done."

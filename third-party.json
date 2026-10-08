@@ -20,9 +20,6 @@
       "workers-best-practices",
       "wrangler"
     ],
-    "cursor/plugins": [
-      "create-verification-skill"
-    ],
     "mattpocock/skills": [
       "ask-matt",
       "chief-of-staff",
