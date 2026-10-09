@@ -1,0 +1,9 @@
+{
+  "$comment": "Claude Code plugins bin/sync installs, enables, and updates on every machine. Marketplace name -> GitHub repo.",
+  "marketplaces": {
+    "impeccable": "pbakaus/impeccable"
+  },
+  "plugins": [
+    "impeccable@impeccable"
+  ]
+}

@@ -188,7 +188,16 @@ hook_args=("$BACKUP")
 hook_plan=$(python3 "$FLEET/lib/fleet/hooks.py" "${hook_args[@]}")
 if [ -n "$hook_plan" ]; then
   echo "$hook_plan"
-  PLANNED=$((PLANNED + $(echo "$hook_plan" | grep -c '^  hook ' || true)))
+  PLANNED=$((PLANNED + $(echo "$hook_plan" | grep -cE '^  (un)?hook ' || true)))
+fi
+
+echo "== Claude Code plugins"
+plugin_args=("$FLEET/claude-plugins.json")
+[ "$APPLY" = 1 ] && plugin_args+=(--apply)
+plugin_plan=$(python3 "$FLEET/lib/fleet/claude_plugins.py" "${plugin_args[@]}")
+if [ -n "$plugin_plan" ]; then
+  echo "$plugin_plan"
+  PLANNED=$((PLANNED + $(echo "$plugin_plan" | grep -cE '^  (market|plugin) ' || true)))
 fi
 if [ "$APPLY" = 1 ] && [ "$SLICE_CHANGED" = 1 ] && command -v systemctl >/dev/null; then
   systemctl --user daemon-reload

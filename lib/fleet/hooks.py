@@ -17,6 +17,8 @@ HOME = Path.home()
 GUARD_PATH = HOME / ".local" / "lib" / "host-check" / "guard.py"
 MARKER = "host-check/guard.py"
 MANAGED_CLAUDE = Path("/etc/claude-code/managed-settings.json")
+# Hooks that call scripts from skills fleet no longer installs for every agent.
+RETIRED_HOOKS = ["/skills/impeccable/"]
 
 
 def command(agent):
@@ -84,14 +86,47 @@ def cursor():
     return path, data
 
 
+def retired(group):
+    commands = [h.get("command", "") for h in group.get("hooks", [group])]
+    return bool(commands) and all(any(m in c for m in RETIRED_HOOKS) for c in commands)
+
+
+def codex_cleanup():
+    """Drop Codex hook groups that only run retired skills' scripts."""
+    path = HOME / ".codex" / "hooks.json"
+    data = load(path)
+    if not data:
+        return None
+    hooks, changed, shifted = data.get("hooks", {}), False, False
+    for event in list(hooks):
+        kept = [g for g in hooks[event] if not retired(g)]
+        if len(kept) != len(hooks[event]):
+            changed = True
+            # Codex keys trust by position; a removal before a kept group moves it.
+            first = next(i for i, g in enumerate(hooks[event]) if retired(g))
+            shifted |= any(hooks[event].index(g) > first for g in kept)
+            if kept:
+                hooks[event] = kept
+            else:
+                del hooks[event]
+    if not changed:
+        return None
+    if shifted:
+        say("note", "Codex: a kept hook moved position; open /hooks once to re-trust it")
+    return path, data
+
+
 def main(argv):
     backup, apply = Path(argv[0]), "--apply" in argv
-    for agent, plan in (("Claude Code", claude), ("Codex", codex), ("Cursor", cursor)):
+    for agent, plan in (("Claude Code", claude), ("Codex", codex), ("Codex cleanup", codex_cleanup), ("Cursor", cursor)):
         change = plan()
         if not change:
             continue
         path, data = change
-        say("hook", f"{agent}: add the guard to {short(path)}")
+        if agent == "Codex cleanup":
+            say("unhook", f"Codex: remove impeccable skill hooks from {short(path)}")
+        else:
+            say("hook", f"{agent}: add the guard to {short(path)}")
         if not apply:
             continue
         if path.exists():

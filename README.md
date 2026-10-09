@@ -6,6 +6,7 @@ Agent skills shared by my machines: the MacBook, `workbox`, and `devbox`.
 
 - `skills/<name>/`: my own skills. Each one has a single `SKILL.md`, which Claude Code, Codex, OpenCode, and Cursor all read. Codex-only metadata lives in `agents/openai.yaml` next to it.
 - `third-party.json`: skills from other repositories, grouped by source. Their files stay out of this repo. Each machine installs them with `npx skills add <source> -g -s <skill>`.
+- `claude-plugins.json`: Claude Code plugins (with their marketplaces) that `bin/sync` installs, enables, and updates on every machine. impeccable lives here rather than in `third-party.json`: design work happens in Claude Code, and the plugin brings its subagents and design-check hook.
 
 ## Principles
 

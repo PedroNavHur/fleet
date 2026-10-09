@@ -63,9 +63,6 @@
     "openai/skills": [
       "linear"
     ],
-    "pbakaus/impeccable": [
-      "impeccable"
-    ],
     "shadcn-ui/ui": [
       "shadcn"
     ],
