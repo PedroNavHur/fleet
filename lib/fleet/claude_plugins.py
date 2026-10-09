@@ -10,6 +10,12 @@ import json
 import shutil
 import subprocess
 import sys
+from pathlib import Path
+
+# Non-interactive ssh shells often lack ~/.local/bin, where the native
+# installer puts claude.
+CLAUDE = shutil.which("claude") or next(
+    (str(p) for p in [Path.home() / ".local" / "bin" / "claude"] if p.exists()), None)
 
 
 def say(verb, text):
@@ -17,7 +23,7 @@ def say(verb, text):
 
 
 def claude(*args, check=True):
-    result = subprocess.run(["claude", "plugin", *args], capture_output=True, text=True)
+    result = subprocess.run([CLAUDE, "plugin", *args], capture_output=True, text=True)
     if check and result.returncode != 0:
         raise SystemExit(f"claude plugin {' '.join(args)} failed: {(result.stderr or result.stdout).strip()}")
     return result.stdout
@@ -25,8 +31,8 @@ def claude(*args, check=True):
 
 def main(argv):
     manifest, apply = json.load(open(argv[0])), "--apply" in argv
-    if not shutil.which("claude"):
-        say("warning", "claude is not on PATH; skipping Claude Code plugins")
+    if not CLAUDE:
+        say("warning", "claude not found on PATH or in ~/.local/bin; skipping Claude Code plugins")
         return
     known = {m["name"] for m in json.loads(claude("marketplace", "list", "--json"))}
     plugins = {p["id"]: p for p in json.loads(claude("list", "--json"))}
