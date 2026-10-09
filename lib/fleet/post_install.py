@@ -39,7 +39,9 @@ BLOCK_END = "<!-- /fleet:principles -->"
 BLOCK = f"""{BLOCK_START}
 Before nontrivial code work (design, implementation, debugging, review), read
 `~/.config/principles.md` and apply the principles that fit. Read a
-principle's SKILL.md in full before applying it.
+principle's SKILL.md in full before applying it. When running `code-review`,
+add the principles that match the diff to the Standards sources, ranked below
+the repo's documented standards.
 {BLOCK_END}
 """
 

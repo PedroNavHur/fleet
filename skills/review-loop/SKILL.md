@@ -63,7 +63,9 @@ Write one shared packet (`rN/common.md`): read-only rules (write only to the
 named output file under `rN/`; no edits, commits, pushes, or GitHub/Linear
 changes), the checkout path and the instruction to read code at pinned SHAs
 with `git show`/`git diff`, the base, the spec path, the gates already passed,
-standing decisions, and the ledger. Then launch every reviewer at once through
+standing decisions, and the ledger. Standards and delta reviewers also get the
+principles from `~/.config/principles.md` that match the diff, as standards
+ranked below the repo's documented ones. Then launch every reviewer at once through
 `delegate_task`, `mode: "async"`, `clientRequestId` `<slug>-rN-<role>-<pr>`:
 
 - **Whole**: per stack (or branch), one `code-review` Standards and one Spec
