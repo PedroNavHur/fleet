@@ -5,6 +5,7 @@
       "frontend-design"
     ],
     "backnotprop/pstack": [
+      "benchmark-checklist",
       "principle-attack-the-premise",
       "principle-boundary-discipline",
       "principle-build-the-lever",
@@ -28,7 +29,8 @@
       "principle-sequence-verifiable-units",
       "principle-subtract-before-you-add",
       "principle-test-behavior-not-implementation",
-      "principle-type-system-discipline"
+      "principle-type-system-discipline",
+      "show-me-your-work"
     ],
     "blader/humanizer": [
       "humanizer"
