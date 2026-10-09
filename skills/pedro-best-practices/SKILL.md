@@ -1,11 +1,11 @@
 ---
 name: pedro-best-practices
-description: Manually audit repositories or PRs in React, Svelte, Godot (GDScript), Python, or PHP against Pedro's eight-input interface cap, component ownership, complexity limits, readability preferences, and each language's performance guidance. Report evidence-backed findings and coverage gaps in the conversation and on the matching GitHub pull request.
+description: Manually audit repositories or PRs in React, Svelte, Godot (GDScript), Python, or PHP against Pedro's eight-input interface cap, component ownership, complexity limits, two-line comment cap, readability preferences, and each language's performance guidance. Report evidence-backed findings and coverage gaps in the conversation and on the matching GitHub pull request.
 ---
 
 # Pedro best practices
 
-Audit code without modifying it, combining Pedro's interface, ownership, complexity, and readability preferences with performance guidance for each language in scope. Return findings in the conversation and publish one summary comment on the matching GitHub PR. Explicit invocation authorizes that comment unless the user requests a local-only audit. Code changes, commits, pushes, and review approval or change-request submissions remain outside this workflow.
+Audit code without modifying it, combining Pedro's interface, ownership, complexity, comment-length, and readability preferences with performance guidance for each language in scope. Return findings in the conversation and publish one summary comment on the matching GitHub PR. Explicit invocation authorizes that comment unless the user requests a local-only audit. Code changes, commits, pushes, and review approval or change-request submissions remain outside this workflow.
 
 ## PR size requests
 
@@ -38,7 +38,7 @@ When the user requests a reviewer model or agent, follow `~/.config/t3-orchestra
 
 1. Inspect repository instructions, framework and engine versions, lint and analyzer configuration, documented limits, and existing patterns (data fetching, caching, scene structure). Inventory the units in scope per language: components, routes, hooks, scenes and scripts, modules, classes. Track inspected units and unresolved contracts; a name-based search alone is not a complete inventory.
 2. Check every scoped unit's public interface against its language's cap, using that reference's counting rules. More than eight is a violation; seven and eight are allowed, with no warning tier. Trace declarations and callers before reporting a count. Assess interface ownership with the criteria below, including units already within the cap; a compliant count does not establish a good design.
-3. Inspect every scoped conditional expression for nesting using the rule below. Record each outer expression once.
+3. Inspect every scoped conditional expression for nesting using the rule below. Record each outer expression once. Run `scripts/long_comments.py` with the audit's range for the comment cap.
 4. Measure complexity once with `scripts/measure_complexity.py` (details under "Complexity limits"), passing any stricter limit the repository documents, and check the diff for ways around the limits. For Godot scope, also run `scripts/godot_interface.py` with the same range.
 5. Work through each in-scope reference's performance categories in order. Mark categories inapplicable where the code lacks those features. Read the detailed rule before validating a candidate, and trace the affected execution paths.
 6. Validate candidates against actual code and configuration. Pedro's explicit preferences govern the audit; performance guidance informs applicable recommendations. A category's impact label is an investigation priority, not automatic finding severity. Account for compiler and engine optimizations, bundler and export configuration, and framework support. Distinguish measured costs from inferred costs. Performance and ownership findings need a concrete consequence or justified opportunity. A syntactically confirmed nested conditional is sufficient for its readability finding, and a measured complexity excess is sufficient for a complexity violation.
@@ -64,6 +64,22 @@ Recommend the smallest clearer form for the surrounding code: an early return,
 named helper, `if`/`else`, `switch`/`match`, or lookup table. Preserve branch
 laziness, evaluation order, type narrowing, and rendered output. Record one
 finding for the outer expression rather than one finding per nested node.
+
+## Long comments
+
+A comment holds at most **two lines of prose**; three or more is `pedro/long-comment`. A comment is a block comment or an unbroken run of line comments that each own their line, so a run of ten `//` lines is one finding. Blank lines, separator rules, lone references (a URL, `See docs/...`, a ticket ID), and tooling directives are not prose. Doc comments (`/** */`, Python docstrings, GDScript `##`), comments after code on the same line, and license headers are exempt. NJ Homes Next, Receipt Hub, and govstructure lint the same cap (`*/no-long-comment`); hexstead's `check_gdscript.py` does too but exempts a file's header block. Find them with the bundled script, which takes the same ranges as `measure_complexity.py`:
+
+```sh
+<this skill's directory>/scripts/long_comments.py BASE HEAD   # BASE alone for the working tree, EMPTY HEAD for every file
+```
+
+It lists each long comment touching a changed line (`--all` for the rest of the changed files) with its prose count, `(file header)` when it sits above the first line of code, and `[lint: <rule>]` when the file's `.oxlintrc.json` enables a `no-long-comment` rule, otherwise `[not lint-checked]`. Read each one before reporting it: the scanner works line by line outside Python, so a `//` line inside a template literal can be a false positive.
+
+- A tagged comment is a **High / lint failure** when the repository's lint fails it; name the rule.
+- Any other long comment is a **Low / violation**. A file header in a repository that exempts headers is out of scope; list it in coverage.
+- Ways around the cap are `pedro/long-comment` too: one comment split into short runs with blank code lines, prose moved into a doc comment that documents no API, or a long trailing comment.
+
+Recommend by what the comment does. Rationale for why the code is this way moves to the repository's docs or an ADR, leaving a one-line pointer; a comment that narrates what the code does becomes a better name, an extracted function, or simpler code; a warning about a silent failure mode stays, compressed to two lines.
 
 ## Complexity limits
 
@@ -113,7 +129,7 @@ Before recommending an interface change, answer: **Would we choose this interfac
 
 Lead with the most consequential confirmed findings. For each, include:
 
-- Category and rule ID: `pedro/eight-prop-cap` for React and Svelte component count violations, `pedro/godot-interface-cap` for Godot script count violations, `pedro/component-ownership` for evidenced interface design findings, `pedro/cognitive-complexity` and `pedro/cyclomatic-complexity` for complexity violations (naming the repository rule, such as `dca/cognitive-complexity`, when lint fails), `pedro/complexity-evasion` for suppressions, loosened config, or splits made only to pass, `pedro/no-nested-ternary` for the advisory readability preference, and the reference's rule ID for performance findings.
+- Category and rule ID: `pedro/eight-prop-cap` for React and Svelte component count violations, `pedro/godot-interface-cap` for Godot script count violations, `pedro/component-ownership` for evidenced interface design findings, `pedro/cognitive-complexity` and `pedro/cyclomatic-complexity` for complexity violations (naming the repository rule, such as `dca/cognitive-complexity`, when lint fails), `pedro/complexity-evasion` for suppressions, loosened config, or splits made only to pass, `pedro/no-nested-ternary` for the advisory readability preference, `pedro/long-comment` for comments over two lines of prose, and the reference's rule ID for performance findings.
 - Clickable file and line, unit (component, scene script, function), and concrete evidence.
 - Impact and a focused recommendation; distinguish policy violations from performance defects or optimization opportunities.
 
@@ -135,7 +151,7 @@ Use this comment structure, replacing the placeholders with actual results:
 ## Pedro best practices
 
 > [!WARNING]
-> Found N confirmed findings: X interface-cap violations, Y ownership findings, C complexity violations (L failing lint), E complexity evasions, Z readability advisories, and W performance findings. Coverage: complete/incomplete.
+> Found N confirmed findings: X interface-cap violations, Y ownership findings, C complexity violations (L failing lint), E complexity evasions, K long comments, Z readability advisories, and W performance findings. Coverage: complete/incomplete.
 
 Reviewed `<sha>` · Scope: <repo/path/PR changes> · Languages: <languages in scope> · Base: <base if applicable>
 Working tree: <clean or local changes included>
@@ -155,6 +171,7 @@ Working tree: <clean or local changes included>
 | Interface cap (per language) | <result> |
 | Interface ownership | <result> |
 | Nested conditionals | <result> |
+| Comment length (2 lines of prose) | <result; say whether lint enforces it or the audit scanned it> |
 | Cognitive complexity (limit 8, or the repository's stricter limit) | <result; say whether lint enforces it or the audit measured it> |
 | Cyclomatic complexity (limit 16, or the repository's stricter limit) | <result; same> |
 | Complexity evasion | <suppressions, config changes, and split-only refactors checked> |
@@ -164,6 +181,6 @@ Inspected: <unit counts per language>. Checks performed: <actual checks>.
 Coverage gaps: <unresolved contracts, unmeasured files, languages without a reference, local-only evidence, or unmeasured costs>.
 ```
 
-Choose the alert from the result: `[!CAUTION]` when a complexity excess fails the repository's lint; `[!WARNING]` when other confirmed policy, complexity, ownership, or performance findings exist; `[!NOTE]` when the only findings are nested-conditional advisories; `[!IMPORTANT]` for incomplete coverage with no findings; and `[!NOTE]` for no findings with complete static coverage. The warning alert is a report summary, not a seven/eight-input warning tier. When no findings exist, say so and omit the findings table rather than inventing rows. Escape pipes inside table cells and keep long evidence outside the table. Avoid implying that a static audit is CI enforcement or a runtime performance measurement.
+Choose the alert from the result: `[!CAUTION]` when a complexity excess or long comment fails the repository's lint; `[!WARNING]` when other confirmed policy, complexity, ownership, or performance findings exist; `[!NOTE]` when the only findings are nested-conditional advisories or long comments that lint does not fail; `[!IMPORTANT]` for incomplete coverage with no findings; and `[!NOTE]` for no findings with complete static coverage. The warning alert is a report summary, not a seven/eight-input warning tier. When no findings exist, say so and omit the findings table rather than inventing rows. Escape pipes inside table cells and keep long evidence outside the table. Avoid implying that a static audit is CI enforcement or a runtime performance measurement.
 
 Use the available GitHub connector or `gh` to post. For `gh`, write the exact Markdown to a temporary file and use `--body-file` with the verified repository and PR number. On an uncertain response or retry, read the PR comments first and reuse the already-published comment for this run rather than duplicating it. A later intentional audit gets a new comment; preserve previous audit history. Verify the published body and return its URL with the main findings in the conversation. If publication fails, retain the prepared report, explain the failure, and do not claim it was posted.

@@ -50,7 +50,7 @@ Run the tests on any machine with:
 
 ```sh
 cd lib/host-check && python3 -m unittest test_guard test_scheduler test_bg_job
-cd skills/pedro-best-practices/tests && python3 -m unittest test_complexity
+cd skills/pedro-best-practices/tests && python3 -m unittest test_complexity test_long_comments
 ```
 
 A skill with a `package.json` gets its dependencies from `bin/sync` (`pnpm install --frozen-lockfile`); `pedro-best-practices` uses that for its own oxlint. Its GDScript and PHP tests skip, with a reason, on machines without gdtoolkit or `php`; set `PBP_GDTOOLKIT_PYTHON` to a Python that has gdtoolkit to run them.
