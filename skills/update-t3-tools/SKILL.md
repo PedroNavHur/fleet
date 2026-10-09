@@ -1,6 +1,7 @@
 ---
 name: update-t3-tools
 description: Update T3 Code, Codex, Claude Code, OpenCode, and Cursor Agent on the host; preserve the persistent T3 service and verify T3 Connect after restart. Use for host maintenance, not application deployments or desktop app updates.
+disable-model-invocation: true
 ---
 
 For T3 agent dispatch and lifecycle, read

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Opus Thermos Review"
-  short_description: "Run two isolated Opus 5 Medium reviews"
-  default_prompt: "Use $opus-thermos-review to audit the current branch against origin/main."

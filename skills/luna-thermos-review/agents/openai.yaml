@@ -1,4 +1,0 @@
-interface:
-  display_name: "Luna Thermos Review"
-  short_description: "Run two isolated Luna Max agent reviews"
-  default_prompt: "Use $luna-thermos-review to audit the current branch against origin/main."

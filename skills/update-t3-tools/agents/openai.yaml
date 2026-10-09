@@ -1,0 +1,6 @@
+interface:
+  display_name: "Update T3 tools"
+  short_description: "Update T3 Code and the agent CLIs on this host"
+  default_prompt: "Use $update-t3-tools to update the agent tools on this host."
+policy:
+  allow_implicit_invocation: false
