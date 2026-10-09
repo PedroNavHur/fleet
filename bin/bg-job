@@ -181,7 +181,7 @@ def status(args):
         if not d.is_dir():
             print(f"{name}: no such job")
             continue
-        cwd = (d / "cwd").read_text() if (d / "cwd").exists() else "?"
+        cwd = (d / "cwd").read_text().strip() if (d / "cwd").exists() else "?"
         print(f"{name}: {state(name)}, {elapsed(name)}, cwd {cwd}, log {d / 'log'}")
 
 
