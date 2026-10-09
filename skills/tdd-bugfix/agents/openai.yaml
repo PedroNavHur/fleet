@@ -1,7 +1,0 @@
-interface:
-  display_name: "TDD bug fix"
-  short_description: "Write the failing test first"
-  default_prompt: "Use $tdd-bugfix to write a failing regression test for this bug."
-
-policy:
-  allow_implicit_invocation: false

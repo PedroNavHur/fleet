@@ -1,9 +1,6 @@
 {
   "$comment": "Third-party skills installed on every machine with `npx skills add <source> -g -s <skill>`. Their files are not copied into this repo.",
   "sources": {
-    "anthropics/skills": [
-      "frontend-design"
-    ],
     "backnotprop/pstack": [
       "benchmark-checklist",
       "principle-attack-the-premise",
@@ -31,9 +28,6 @@
       "principle-test-behavior-not-implementation",
       "principle-type-system-discipline",
       "show-me-your-work"
-    ],
-    "blader/humanizer": [
-      "humanizer"
     ],
     "cloudflare/skills": [
       "cloudflare"
@@ -76,8 +70,7 @@
     ],
     "vercel-labs/agent-skills": [
       "vercel-composition-patterns",
-      "vercel-react-best-practices",
-      "web-design-guidelines"
+      "vercel-react-best-practices"
     ]
   }
 }
