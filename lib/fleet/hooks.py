@@ -1,0 +1,112 @@
+"""Register the host-check guard as a pre-command hook for each agent.
+
+    python3 hooks.py BACKUP_DIR [--apply]
+
+Prints one plan line per change, in bin/sync's format. With --apply, copies
+each settings file into BACKUP_DIR before rewriting it. Only the guard entry is
+added; every other setting and hook stays as it was. New entries are appended,
+because Codex keys hook trust by position.
+"""
+import json
+import os
+from pathlib import Path
+import shutil
+import sys
+
+HOME = Path.home()
+GUARD_PATH = HOME / ".local" / "lib" / "host-check" / "guard.py"
+MARKER = "host-check/guard.py"
+MANAGED_CLAUDE = Path("/etc/claude-code/managed-settings.json")
+
+
+def command(agent):
+    return f"/usr/bin/python3 {GUARD_PATH} {agent}"
+
+
+def short(path):
+    path = str(path)
+    return "~/" + path[len(str(HOME)) + 1:] if path.startswith(str(HOME) + "/") else path
+
+
+def say(verb, text):
+    print(f"  {verb:<10} {text}")
+
+
+def load(path):
+    try:
+        return json.loads(path.read_text())
+    except FileNotFoundError:
+        return None
+
+
+def has_guard(data):
+    return MARKER in json.dumps((data or {}).get("hooks", {}))
+
+
+def claude():
+    managed = load(MANAGED_CLAUDE)
+    if has_guard(managed):
+        return None  # already enforced machine-wide
+    if (managed or {}).get("allowManagedHooksOnly"):
+        say("warning", f"Claude Code ignores user hooks here; add the guard to {MANAGED_CLAUDE} as root")
+        return None
+    path = HOME / ".claude" / "settings.json"
+    data = load(path) or {}
+    if has_guard(data):
+        return None
+    data.setdefault("hooks", {}).setdefault("PreToolUse", []).append(
+        {"matcher": "Bash", "hooks": [{"type": "command", "command": command("claude"), "timeout": 5}]})
+    return path, data
+
+
+def codex():
+    if not (HOME / ".codex").is_dir():
+        return None
+    path = HOME / ".codex" / "hooks.json"
+    data = load(path) or {}
+    if has_guard(data):
+        return None
+    data.setdefault("hooks", {}).setdefault("PreToolUse", []).append(
+        {"matcher": "Bash", "hooks": [{"type": "command", "command": command("codex"), "timeout": 5,
+                                       "statusMessage": "Checking shared CPU queue"}]})
+    return path, data
+
+
+def cursor():
+    if not (HOME / ".cursor").is_dir():
+        return None
+    path = HOME / ".cursor" / "hooks.json"
+    data = load(path) or {"version": 1}
+    if has_guard(data):
+        return None
+    data.setdefault("hooks", {}).setdefault("beforeShellExecution", []).append(
+        {"command": command("cursor"), "timeout": 5})
+    return path, data
+
+
+def main(argv):
+    backup, apply = Path(argv[0]), "--apply" in argv
+    for agent, plan in (("Claude Code", claude), ("Codex", codex), ("Cursor", cursor)):
+        change = plan()
+        if not change:
+            continue
+        path, data = change
+        say("hook", f"{agent}: add the guard to {short(path)}")
+        if not apply:
+            continue
+        if path.exists():
+            saved = backup / path.relative_to(HOME)
+            saved.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, saved)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_name(path.name + ".fleet-tmp")
+        temporary.write_text(json.dumps(data, indent=2) + "\n")
+        if path.exists():
+            os.chmod(temporary, path.stat().st_mode & 0o777)
+        temporary.replace(path)
+        if agent == "Codex":
+            say("note", "Codex: open /hooks once to review and trust the new hook")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

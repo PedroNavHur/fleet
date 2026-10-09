@@ -1,0 +1,211 @@
+#!/usr/bin/env python3
+"""Run a long command so it survives the agent session that started it.
+
+  bg-job start NAME -- COMMAND [ARG ...]   start in the current directory and environment
+  bg-job wait NAME                         block until done; print the log tail; exit with its code
+  bg-job status [NAME]                     running / exited N, elapsed time, log path
+  bg-job log NAME [LINES]                  tail of the log (default 40)
+
+Typical use from an agent, as one background command:
+  bg-job start eng1900-gates -- host-check pnpm check && bg-job wait eng1900-gates
+If the session dies, the job keeps running; `bg-job status NAME` recovers it.
+
+On Linux with a user systemd bus the job is a transient service (bgjob-NAME).
+Elsewhere it runs detached in its own session; on macOS under `caffeinate -i`,
+so the Mac does not idle-sleep mid-job (closing the lid still sleeps).
+State lives in ~/.cache/bg-jobs/NAME/.
+"""
+import json
+import os
+from pathlib import Path
+import platform
+import re
+import shutil
+import subprocess
+import sys
+import time
+
+ROOT = Path(os.environ.get("BG_JOB_DIR") or Path.home() / ".cache" / "bg-jobs")
+SELF = os.path.realpath(__file__)
+
+
+def die(message):
+    print(f"bg-job: {message}", file=sys.stderr)
+    sys.exit(2)
+
+
+def check_name(name):
+    if not name or not re.fullmatch(r"[A-Za-z0-9._-]+", name):
+        die("NAME must match [A-Za-z0-9._-]+")
+    return name
+
+
+def unit(name):
+    return f"bgjob-{name}"
+
+
+def systemd():
+    if platform.system() != "Linux" or not shutil.which("systemd-run"):
+        return False
+    return subprocess.run(["systemctl", "--user", "show-environment"], capture_output=True).returncode == 0
+
+
+def running(name):
+    d = ROOT / name
+    if (d / "unit").exists():
+        return subprocess.run(["systemctl", "--user", "is-active", "--quiet", unit(name)]).returncode == 0
+    try:
+        os.kill(int((d / "pid").read_text()), 0)
+    except (FileNotFoundError, ValueError, ProcessLookupError):
+        return False
+    except PermissionError:
+        return True
+    return not (d / "exit").exists()
+
+
+def elapsed(name):
+    d = ROOT / name
+    try:
+        start = int((d / "started").read_text())
+    except (FileNotFoundError, ValueError):
+        return "?"
+    try:
+        end = int((d / "finished").read_text())
+    except (FileNotFoundError, ValueError):
+        end = int(time.time())
+    return f"{(end - start) // 60}m{(end - start) % 60:02d}s"
+
+
+def state(name):
+    d = ROOT / name
+    if (d / "exit").exists():
+        return f"exited {(d / 'exit').read_text().strip()}"
+    return "running" if running(name) else "lost (process gone, no exit code)"
+
+
+def tail(path, lines):
+    try:
+        text = Path(path).read_text(errors="replace").splitlines()
+    except FileNotFoundError:
+        return
+    for line in text[-lines:]:
+        print(line)
+
+
+def start(args):
+    name = check_name(args[0] if args else "")
+    command = args[1:]
+    if command[:1] == ["--"]:
+        command = command[1:]
+    if not command:
+        die("missing COMMAND")
+    d = ROOT / name
+    if d.exists() and running(name):
+        die(f"{name} is already running (bg-job status {name})")
+    use_systemd = systemd()
+    if use_systemd:
+        subprocess.run(["systemctl", "--user", "reset-failed", unit(name)], capture_output=True)
+    shutil.rmtree(d, ignore_errors=True)
+    d.mkdir(parents=True)
+    os.chmod(ROOT, 0o700)
+    os.chmod(d, 0o700)
+    # The caller's environment, including feature flags and tokens: owner-only.
+    fd = os.open(d / "env.json", os.O_WRONLY | os.O_CREAT, 0o600)
+    with os.fdopen(fd, "w") as handle:
+        json.dump(dict(os.environ), handle)
+    (d / "cmd.json").write_text(json.dumps(command))
+    cwd = os.path.realpath(os.getcwd())
+    (d / "cwd").write_text(cwd)
+    (d / "started").write_text(str(int(time.time())))
+    runner = [sys.executable, SELF, "_run", str(d)]
+    if use_systemd:
+        (d / "unit").write_text(unit(name))
+        subprocess.run(["systemd-run", "--user", "--quiet", "--collect", "--expand-environment=no",
+                        f"--unit={unit(name)}",
+                        f"--working-directory={cwd}", *runner], check=True)
+    else:
+        if platform.system() == "Darwin" and shutil.which("caffeinate"):
+            runner = ["caffeinate", "-i", *runner]
+        process = subprocess.Popen(runner, cwd=cwd, start_new_session=True, stdin=subprocess.DEVNULL,
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        (d / "pid").write_text(str(process.pid))
+    print(f"started {name}: log {d / 'log'}")
+
+
+def run(directory):
+    """The job itself: restore the caller's environment, run, record the exit code."""
+    d = Path(directory)
+    env = json.loads((d / "env.json").read_text())
+    command = json.loads((d / "cmd.json").read_text())
+    with open(d / "log", "wb") as log:
+        try:
+            code = subprocess.call(command, cwd=(d / "cwd").read_text(), env=env,
+                                   stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT)
+        except OSError as exc:
+            log.write(f"bg-job: cannot run {command[0]}: {exc}\n".encode())
+            code = 127
+    if code < 0:  # killed by a signal, reported the way a shell would
+        code = 128 - code
+    (d / "finished").write_text(str(int(time.time())))
+    (d / "exit").write_text(str(code))
+
+
+def wait(args):
+    name = check_name(args[0] if args else "")
+    d = ROOT / name
+    if not d.is_dir():
+        die(f"no job {name}")
+    while not (d / "exit").exists():
+        if not running(name):
+            time.sleep(2)
+            if (d / "exit").exists():
+                break
+            die(f"{name} lost: process gone without an exit code")
+        time.sleep(5)
+    tail(d / "log", 40)
+    code = int((d / "exit").read_text())
+    print(f"bg-job: {name} exited {code} after {elapsed(name)}")
+    sys.exit(code)
+
+
+def status(args):
+    if args:
+        names = [args[0]]
+    else:
+        names = sorted((p.name for p in ROOT.iterdir() if p.is_dir()),
+                       key=lambda n: (ROOT / n).stat().st_mtime, reverse=True) if ROOT.is_dir() else []
+    for name in names:
+        d = ROOT / name
+        if not d.is_dir():
+            print(f"{name}: no such job")
+            continue
+        cwd = (d / "cwd").read_text() if (d / "cwd").exists() else "?"
+        print(f"{name}: {state(name)}, {elapsed(name)}, cwd {cwd}, log {d / 'log'}")
+
+
+def usage(stream=sys.stdout):
+    print(__doc__.split("\n\n")[1], file=stream)
+
+
+def main(argv):
+    command, args = (argv[0], argv[1:]) if argv else ("", [])
+    if command == "start":
+        start(args)
+    elif command == "_run":
+        run(args[0])
+    elif command == "wait":
+        wait(args)
+    elif command == "status":
+        status(args)
+    elif command == "log":
+        name = check_name(args[0] if args else "")
+        tail(ROOT / name / "log", int(args[1]) if len(args) > 1 else 40)
+    elif command in ("", "-h", "--help", "help"):
+        usage()
+    else:
+        usage(sys.stderr)
+        sys.exit(2)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

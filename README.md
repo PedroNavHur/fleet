@@ -17,13 +17,24 @@ fleet/bin/sync --apply    # pull, link own skills, install and update third-part
 
 `bin/sync` links each skill in `skills/` into `~/.agents/skills` (read by Codex, Cursor, and OpenCode) and `~/.claude/skills` (read by Claude Code). Any other entry in those folders, or a copy in `~/.codex/skills`, `~/.cursor/skills`, or `~/.config/opencode/skills`, is moved to `~/.skills-backups/fleet-<timestamp>/`. To add or change a skill, edit it here, push, and run `bin/sync --apply` on each machine.
 
-## Machine dependencies
+## Shared host files
 
-Some skills read files that live on each machine rather than in this repo:
+`bin/sync` also installs the machine-level tooling that skills rely on:
 
-| File | Used by |
+| On each machine | From this repo |
 | --- | --- |
-| `~/.config/t3-orchestration.md` | architect, how, why, delegate, review-loop, split-stacked-prs, update-t3-tools, principle-make-operations-idempotent, pedro-best-practices |
-| `~/.config/host-validation.md`, `~/.local/bin/host-check` | delegate, review-loop, split-stacked-prs, suzuka-review-fix; optional for pre-commit and pedro-best-practices |
-| `~/.local/bin/axe-review` | axe-review |
-| `~/.codex/AGENTS.md` ("PR and stack size") | split-stacked-prs, pedro-best-practices |
+| `~/.local/bin/host-check` | `bin/host-check`: the shared validation queue |
+| `~/.local/bin/bg-job` | `bin/bg-job`: long jobs that outlive the agent session |
+| `~/.local/lib/host-check/` | `lib/host-check/`: `guard.py` (command guard and job classes), tests, OpenCode plugin |
+| `~/.config/t3-orchestration.md` | `config/t3-orchestration.md` |
+| `~/.config/host-validation.md` | generated from `config/host-validation.md` plus `hosts/<machine>/host-validation.md` |
+| `~/.config/fleet/host.json` | `hosts/<machine>/host.json`: queue limits and CPU policy |
+| `~/.config/systemd/user/builds.slice` | `hosts/<machine>/builds.slice` (Linux) |
+
+The full list of links is in `links`. `bin/sync` also adds the guard to Claude Code, Codex, Cursor, and OpenCode as a pre-command hook. On Linux, host-check runs jobs in `builds.slice`; on macOS it runs them under `taskpolicy -c utility`, which yields the CPU to interactive work and does not limit memory.
+
+Run the tests on any machine with:
+
+```sh
+cd lib/host-check && python3 -m unittest test_guard test_scheduler test_bg_job
+```

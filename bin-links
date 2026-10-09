@@ -1,2 +1,0 @@
-# command  path in this repo; bin/sync links ~/.local/bin/<command> to it
-axe-review skills/axe-review/scripts/scan.mjs

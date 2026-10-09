@@ -1,0 +1,11 @@
+# Symlinks bin/sync keeps in place. One per line:
+#   <path under ~>  <path in this repo>  [if:<path under ~ that must exist>]
+# {host} is this machine's name in hosts/. A missing repo path is skipped.
+.local/bin/axe-review                   skills/axe-review/scripts/scan.mjs
+.local/bin/host-check                   bin/host-check
+.local/bin/bg-job                       bin/bg-job
+.local/lib/host-check                   lib/host-check
+.config/fleet/host.json                 hosts/{host}/host.json
+.config/t3-orchestration.md             config/t3-orchestration.md
+.config/systemd/user/builds.slice       hosts/{host}/builds.slice
+.config/opencode/plugins/host-check.js  lib/host-check/opencode-plugin.js  if:.config/opencode

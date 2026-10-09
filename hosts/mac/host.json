@@ -1,0 +1,10 @@
+{
+  "hostnames": ["Pedros-MBP", "Pedros-MacBook-Pro"],
+  "slots": 3,
+  "heavy_slots": 2,
+  "build_slots": 1,
+  "vitest_max_workers": 4,
+  "nice": 0,
+  "qos_clamp": "utility",
+  "deny_dev_servers": false
+}
