@@ -52,8 +52,10 @@ def systemd():
 
 def running(name):
     d = ROOT / name
-    if (d / "unit").exists():
-        return subprocess.run(["systemctl", "--user", "is-active", "--quiet", unit(name)]).returncode == 0
+    if not (d / "pid").exists():
+        # A systemd job, including one started by the earlier bash bg-job.
+        return systemd() and subprocess.run(
+            ["systemctl", "--user", "is-active", "--quiet", unit(name)]).returncode == 0
     try:
         os.kill(int((d / "pid").read_text()), 0)
     except (FileNotFoundError, ValueError, ProcessLookupError):
