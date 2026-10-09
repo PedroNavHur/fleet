@@ -32,8 +32,9 @@ def say(message):
 
 def usage(conf):
     print("Usage: host-check COMMAND [ARG ...]")
+    builds = "build" if conf["build_slots"] == 1 else "builds"
     print(f"One job per worktree; up to {conf['slots']} jobs, {conf['heavy_slots']} heavy "
-          f"(whole suites and builds), {conf['build_slots']} builds.")
+          f"(whole suites and builds), {conf['build_slots']} {builds}.")
     print(f"Vitest defaults to {conf['vitest_max_workers']} workers. "
           "HOST_CHECK_CLASS=build|heavy|light overrides the detected class.")
     print("Run from the target worktree. Wrap a command or pipeline, never both.")
