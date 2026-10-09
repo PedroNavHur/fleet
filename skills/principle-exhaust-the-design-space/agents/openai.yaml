@@ -1,7 +1,0 @@
-interface:
-  display_name: "Exhaust The Design Space"
-  short_description: "Prototype alternatives before choosing"
-  default_prompt: "Use $principle-exhaust-the-design-space before I commit to this interaction design."
-
-policy:
-  allow_implicit_invocation: false

@@ -207,7 +207,15 @@ for pkg in "$FLEET"/skills/*/package.json; do
   fi
 done
 
+# Codex metadata, the principles index, and instruction pointers depend on
+# what is installed, so --apply runs them after the installs below.
 if [ "$APPLY" = 0 ]; then
+  echo "== After install"
+  post_plan=$(python3 "$FLEET/lib/fleet/post_install.py" "$BACKUP")
+  if [ -n "$post_plan" ]; then
+    echo "$post_plan"
+    PLANNED=$((PLANNED + $(echo "$post_plan" | grep -c . || true)))
+  fi
   echo
   [ "$PLANNED" = 0 ] && echo "Already in sync."
   echo "Dry run: nothing changed. Re-run with --apply to carry out the plan."
@@ -241,6 +249,9 @@ fi
 echo "== npx skills update"
 # shellcheck disable=SC2086
 npx --yes skills update -g -y $THIRD_NAMES </dev/null || FAILED="$FAILED update"
+
+echo "== After install"
+python3 "$FLEET/lib/fleet/post_install.py" "$BACKUP" --apply
 
 if [ -d "$BACKUP" ]; then echo "Retired entries are in $(short "$BACKUP")"; fi
 if [ -n "$FAILED" ]; then

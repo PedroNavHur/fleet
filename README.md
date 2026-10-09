@@ -7,6 +7,16 @@ Agent skills shared by my machines: the MacBook, `workbox`, and `devbox`.
 - `skills/<name>/`: my own skills. Each one has a single `SKILL.md`, which Claude Code, Codex, OpenCode, and Cursor all read. Codex-only metadata lives in `agents/openai.yaml` next to it.
 - `third-party.json`: skills from other repositories, grouped by source. Their files stay out of this repo. Each machine installs them with `npx skills add <source> -g -s <skill>`.
 
+## Principles
+
+The `principle-*` skills come from [pstack](https://github.com/backnotprop/pstack) (a mirror of `cursor/plugins/pstack`), listed in `third-party.json`. Upstream marks them `disable-model-invocation: true`, so agents don't load them on their own. After each install, `bin/sync`:
+
+- gives each such skill an `agents/openai.yaml` with `allow_implicit_invocation: false`, because Codex ignores the frontmatter key;
+- writes `~/.config/principles.md`, one line per principle with when it applies and its path;
+- adds a marked block to `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, and `~/.config/opencode/AGENTS.md` telling agents to read that index before nontrivial code work.
+
+Skills in this repo cite principles by path (`~/.agents/skills/principle-x/SKILL.md`), not by name, because a principle hidden from the model cannot be found by name.
+
 ## Sync a machine
 
 ```sh

@@ -1,7 +1,0 @@
-interface:
-  display_name: "Redesign From First Principles"
-  short_description: "Rebuild instead of bolting on"
-  default_prompt: "Use $principle-redesign-from-first-principles to fold this requirement into the design."
-
-policy:
-  allow_implicit_invocation: false

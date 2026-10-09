@@ -1,7 +1,0 @@
-interface:
-  display_name: "Foundational Thinking"
-  short_description: "Get the data structures right first"
-  default_prompt: "Use $principle-foundational-thinking to pick the core types for this feature."
-
-policy:
-  allow_implicit_invocation: false

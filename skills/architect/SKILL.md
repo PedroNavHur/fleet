@@ -47,7 +47,7 @@ Each candidate produces a design package shaped per `references/rationale-templa
 
 Once all runners return, pick the base candidate, then graft the strongest parts of the others into it. The result is one synthesized design package. Say which candidate was the base and what you grafted; that populates the rationale's "Synthesis decision" section.
 
-Design it twice. Require at least two structurally distinct candidates before synthesis, even when the first looks sufficient. This is the **exhaust-the-design-space** principle skill made concrete. Whole-shape alternatives, not point fixes inside one shape.
+Design it twice. Require at least two structurally distinct candidates before synthesis, even when the first looks sufficient. This is the **exhaust-the-design-space** principle (`~/.agents/skills/principle-exhaust-the-design-space/SKILL.md`) made concrete. Whole-shape alternatives, not point fixes inside one shape.
 
 Screen every candidate against [`references/design-red-flags.md`](references/design-red-flags.md) before synthesis. Reject or revise shallow modules, information leakage, temporal decomposition, and pass-through methods.
 
@@ -59,7 +59,7 @@ Default: proceed directly to implementation with the synthesized design. No huma
 
 Opt in to a checkpoint when the invoker explicitly asks: "/architect with checkpoint," "stop and show me before implementing," or similar. Then surface the synthesized design and pause for sign-off.
 
-The synthesis can ship as its own commit either way. That's the "scaffold first" mode of the **foundational-thinking** principle skill; subsequent commits read as filling in bodies against a stable contract. Planned and scoped breakage during fill-in is fine, per the **outcome-oriented-execution** principle skill. For adversarial pressure on the design before implementing, run the **how** skill in critique mode over the synthesized sketch. In Claude Code you can also ask the user to run `/code-review ultra`; it is user-triggered and billed, so you cannot launch it yourself.
+The synthesis can ship as its own commit either way. That's the "scaffold first" mode of the **foundational-thinking** principle (`~/.agents/skills/principle-foundational-thinking/SKILL.md`); subsequent commits read as filling in bodies against a stable contract. Planned and scoped breakage during fill-in is fine, per the **outcome-oriented-execution** principle (`~/.agents/skills/principle-outcome-oriented-execution/SKILL.md`). For adversarial pressure on the design before implementing, run the **how** skill in critique mode over the synthesized sketch. In Claude Code you can also ask the user to run `/code-review ultra`; it is user-triggered and billed, so you cannot launch it yourself.
 
 If the human pushes back on the shape (in a checkpoint or after the fact), treat that as Phase A evidence. Re-ground and re-run Phase B before writing more code.
 
@@ -71,7 +71,7 @@ Deviations from the sketch are signal worth surfacing, not friction to absorb si
 
 ## Phase E: Scrap when the architecture is wrong
 
-If implementation keeps producing friction the sketch can't absorb, throw the sketch out. Don't bolt fixes onto a wrong design, per the **redesign-from-first-principles** and **fix-root-causes** principle skills.
+If implementation keeps producing friction the sketch can't absorb, throw the sketch out. Don't bolt fixes onto a wrong design, per the **redesign-from-first-principles** and **fix-root-causes** principle (`~/.agents/skills/principle-fix-root-causes/SKILL.md`)s.
 
 The signal is a *pattern*, not single instances. Tells:
 
@@ -87,8 +87,8 @@ Use judgment. A few edge cases don't condemn an architecture. Some problems are 
 When you scrap:
 
 1. Re-run the **how** skill over what's been built. The implementation lessons enter the new design as inputs, not vibes.
-2. Redesign as if the new constraints had been day-one assumptions, per redesign-from-first-principles.
-3. Subtract before adding, per the **subtract-before-you-add** principle skill. The new sketch should be smaller than the old one before it grows.
+2. Redesign as if the new constraints had been day-one assumptions, per the **redesign-from-first-principles** principle (`~/.agents/skills/principle-redesign-from-first-principles/SKILL.md`).
+3. Subtract before adding, per the **subtract-before-you-add** principle (`~/.agents/skills/principle-subtract-before-you-add/SKILL.md`). The new sketch should be smaller than the old one before it grows.
 4. Return to Phase B and re-run the candidate fan-out.
 
 ## Outputs
