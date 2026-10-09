@@ -121,8 +121,8 @@ Launch each wave's investigators in a single batch so they run concurrently. One
 
 Launch each investigator with `delegate_task`, `role: "research"`, and
 `mode: "async"`. Include its base prompt, category playbook, code anchor,
-question, and no-write instructions. Use the live catalog to preserve the
-workflow's intended model (Sonnet for Claude; inherited model for Codex).
+question, and no-write instructions. Resolve the workflow's investigator model
+from the live catalog: Claude Haiku 5.5 on the Claude provider.
 Verify the child has the required MCP tools; report missing evidence access
 as a coverage gap. Batch independent categories within available capacity and
 await automatic results rather than polling.
@@ -169,8 +169,8 @@ If your scope assessment suggests a single-commit trivial target where the PR de
 
 Delegate one synthesis task after collecting all investigators. Include all
 findings, null results, skipped-source reasons, the original question, and the
-listed reference contents or accessible pointers. Resolve Opus for Claude or
-`gpt-5.6-sol` at xhigh for Codex. The child needs evidence tools to spot-check
+listed reference contents or accessible pointers. Resolve Opus 5.5 for Claude or
+`gpt-6.1-sol` at xhigh for Codex. The child needs evidence tools to spot-check
 citations; explicitly require no writes.
 
 The synthesizer gets:
