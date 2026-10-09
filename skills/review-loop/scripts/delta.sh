@@ -9,7 +9,8 @@
 # without, the delta is the whole PREV_HEAD..HEAD diff. A rebase shows up as the
 # base's changes merged into those files, which is what a hand-resolved conflict
 # looks like. Writes DIR/delta-<PR>.diff for every non-empty delta and prints
-# PR, layer, changed lines and whether React files (*.tsx/*.jsx) changed.
+# PR, layer, changed lines and whether files pedro-best-practices audits changed
+# (JS/TS, Svelte, Vue, Astro, GDScript, Python, PHP).
 set -euo pipefail
 prev= heads= out= manifests= repo=.
 while (($#)); do
@@ -46,7 +47,8 @@ while IFS=$'\t' read -r pr layer _base head; do
     continue
   fi
   lines=$(git diff --numstat "$old" "$head" -- "${paths[@]}" | awk '{ n += $1 + $2 } END { print n + 0 }')
-  react=no
-  git diff --name-only "$old" "$head" -- "${paths[@]}" | grep -qE '\.(tsx|jsx)$' && react=yes
-  echo "$pr $layer: $lines lines, react=$react -> $file"
+  audit=no
+  git diff --name-only "$old" "$head" -- "${paths[@]}" |
+    grep -qE '\.([cm]?[jt]sx?|svelte|vue|astro|gd|py|php)$' && audit=yes
+  echo "$pr $layer: $lines lines, audit=$audit -> $file"
 done <"$heads"

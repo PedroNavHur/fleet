@@ -6,10 +6,10 @@ have an MCP prefix. Use the live tool schema when it differs from an example.
 ## Review skills
 
 Use `code-review` for Standards and Spec review, and `pedro-best-practices` for
-Pedro's React audit. The user selects reviewer models, effort, and agent roles
-at invocation time. These are the retained general review workflows.
-`review-loop` runs both in rounds with fixes between them, re-reviewing only
-the delta until a round is clean.
+Pedro's code audit (React, Svelte, Godot, Python, PHP). The user selects
+reviewer models, effort, and agent roles at invocation time. These are the
+retained general review workflows. `review-loop` runs both in rounds with fixes
+between them, re-reviewing only the delta until a round is clean.
 
 ## Choose and launch
 

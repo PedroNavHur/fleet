@@ -1,6 +1,6 @@
 interface:
   display_name: "Pedro best practices"
-  short_description: "Audit React quality and publish a GitHub PR summary"
-  default_prompt: "Use $pedro-best-practices to audit this repository against my React preferences and comment on its matching GitHub PR."
+  short_description: "Audit code quality and publish a GitHub PR summary"
+  default_prompt: "Use $pedro-best-practices to audit this repository against my best practices and comment on its matching GitHub PR."
 policy:
   allow_implicit_invocation: false

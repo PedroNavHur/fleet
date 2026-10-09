@@ -71,7 +71,7 @@ ranked below the repo's documented ones. Then launch every reviewer at once thro
 - **Whole**: per stack (or branch), one `code-review` Standards and one Spec
   reviewer; per PR, one `pedro-best-practices` audit, local-only.
 - **Delta**: per stack, one reviewer covering Standards and Spec on the delta
-  diffs; per PR whose delta changed React files, one local-only audit. The
+  diffs; per PR whose delta has `audit=yes`, one local-only audit. The
   brief: confirm each fix in the delta is correct and complete, then look for
   regressions it causes in the code around it (callers, tests, sibling
   layers). The rest of the PR was reviewed in an earlier round.

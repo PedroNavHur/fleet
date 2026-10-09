@@ -1,52 +1,58 @@
 ---
 name: pedro-best-practices
-description: Manually audit React repositories or PRs against Pedro's eight-prop cap, complexity limits, component ownership and readability preferences, and Vercel React and Next.js best practices. Report evidence-backed findings and coverage gaps in the conversation and on the matching GitHub pull request.
+description: Manually audit repositories or PRs in React, Svelte, Godot (GDScript), Python, or PHP against Pedro's eight-input interface cap, component ownership, complexity limits, readability preferences, and each language's performance guidance. Report evidence-backed findings and coverage gaps in the conversation and on the matching GitHub pull request.
 ---
 
 # Pedro best practices
 
-Audit React code without modifying it, combining Pedro's interface and readability preferences with Vercel's performance guidance. Return findings in the conversation and publish one summary comment on the matching GitHub PR. Explicit invocation authorizes that comment unless the user requests a local-only audit. Code changes, commits, pushes, and review approval or change-request submissions remain outside this workflow.
+Audit code without modifying it, combining Pedro's interface, ownership, complexity, and readability preferences with performance guidance for each language in scope. Return findings in the conversation and publish one summary comment on the matching GitHub PR. Explicit invocation authorizes that comment unless the user requests a local-only audit. Code changes, commits, pushes, and review approval or change-request submissions remain outside this workflow.
 
 ## PR size requests
 
 For an audit or explanation of Pedro's PR or layer size rule, read the "PR and
 stack size" section in `~/.codex/AGENTS.md` and the installed
 `split-stacked-prs` skill and its `scripts/diff_budget.py`. This is a separate
-personal policy from the React audit below. For a policy-only request, return
-findings in the conversation without running the React audit or posting a PR
+personal policy from the code audit below. For a policy-only request, return
+findings in the conversation without running the audit or posting a PR
 comment. Claude's installed wrapper reads this same canonical skill.
 
-## Scope and sources
+## Scope and languages
 
-With no scope argument, audit the current repository's first-party React application code, including relevant working-tree changes. Accept a path, explicit base, or PR scope; use a PR's actual base and follow changed shared contracts to affected consumers. Record the scope, revisions, and working-tree state reviewed. Exclude dependencies, generated output, and fixtures unless requested.
+With no scope argument, audit the current repository's first-party application code, including relevant working-tree changes. Accept a path, explicit base, or PR scope; use a PR's actual base and follow changed shared contracts to affected consumers. Record the scope, revisions, and working-tree state reviewed. Exclude dependencies, generated output, vendored add-ons, and fixtures unless requested.
 
-Read these installed sources as reference documents before auditing:
+Read the reference for every language in scope before auditing it. Each one holds that language's interface cap, ownership patterns, mappings for the shared rules, and performance categories:
 
-- [Prop counting](references/prop-counting.md): authoritative counting semantics for Pedro's cap. Apply its counting and uncertainty guidance; use the combined report below.
-- [Vercel React best practices](~/.agents/skills/vercel-react-best-practices/SKILL.md): category and rule index. Read the relevant `rules/*.md` files relative to that directory before validating findings. Use its compiled `AGENTS.md` when a full expanded reference is useful.
+| Files in scope | Reference |
+| --- | --- |
+| React (`.tsx`, `.jsx`, React hooks and utilities) | [references/react.md](references/react.md) |
+| Svelte (`.svelte`, runes in `.svelte.ts`) | [references/svelte.md](references/svelte.md) |
+| Godot (`.gd`, scenes) | [references/godot.md](references/godot.md) |
+| Python (`.py`) | [references/python.md](references/python.md) |
+| PHP (`.php`) | [references/php.md](references/php.md) |
 
-These references inform this combined audit, not separate review runs. If a source is missing, look for the installed skill by name. If unavailable, complete the available portion and identify the missing coverage.
+TypeScript and JavaScript outside React and Svelte get the shared rules below with no interface cap and no performance reference. A language with no reference gets the shared rules and is listed as a coverage gap for its interface and performance checks.
 
 When the user requests a reviewer model or agent, follow `~/.config/t3-orchestration.md` and include the applicable audit instructions, references, scope, and requested role in its complete brief. Delegate read-only investigation; the invoking thread validates findings and owns any authorized PR comment. Preserve requested model and effort choices.
 
 ## Audit
 
-1. Inspect repository instructions, framework versions, React Compiler settings, and existing data-fetching and caching patterns. Inventory the components, routes, hooks, and React-related utilities in scope. Track inspected files/components and unresolved contracts; a name-based search alone is not a complete inventory.
-2. Check the public prop contract of every scoped component using the prop-audit reference. More than eight application-defined top-level props is a violation. Seven and eight are allowed, with no warning tier. This limit concerns React props, not ordinary helper-function parameter counts. Trace declarations and callers before reporting a count. Assess interface quality using the criteria below, including components already within the cap; a compliant count does not establish a good design.
-3. Inspect every scoped JavaScript, TypeScript, JSX, and TSX conditional expression for nested ternaries using the rule below. Record each outer expression once.
-4. Measure cognitive and cyclomatic complexity in scoped first-party JavaScript, TypeScript, JSX, and TSX code, and check the diff for ways around the limits, using the rules below. Include functions in non-React utilities within the requested scope. For a diff scope, run `scripts/measure_complexity.py BASE HEAD` once from the checkout (details under "Complexity limits").
-5. Consider every Vercel category in order: waterfalls, bundle size, server performance, client fetching, rerenders, rendering, JavaScript performance, and advanced patterns. Mark categories inapplicable where the repository lacks those features, such as Next.js server features in a client-only React app. Read relevant detailed rules and trace the affected execution paths. Settled fact, do not re-check: Next.js optimizes `lucide-react` barrel imports by default (its built-in `optimizePackageImports` list in `next/dist/server/config.js`, line ~1125 in Next 16.3 and ~988 in 16.2), so `import { X } from "lucide-react"` is not a bundle-size finding in NJ Homes Next or Receipt Hub.
-6. Validate candidates against actual code and configuration. Pedro's explicit preferences govern the audit; Vercel guidance informs applicable recommendations. A category's impact label is an investigation priority, not automatic finding severity. Account for existing compiler optimizations, bundler configuration, cache scope, and framework support. Distinguish measured costs from inferred costs. Performance and ownership findings need a concrete consequence or justified opportunity. A syntactically confirmed nested ternary is sufficient for its readability finding, and a measured complexity excess is sufficient for a complexity violation.
+1. Inspect repository instructions, framework and engine versions, lint and analyzer configuration, documented limits, and existing patterns (data fetching, caching, scene structure). Inventory the units in scope per language: components, routes, hooks, scenes and scripts, modules, classes. Track inspected units and unresolved contracts; a name-based search alone is not a complete inventory.
+2. Check every scoped unit's public interface against its language's cap, using that reference's counting rules. More than eight is a violation; seven and eight are allowed, with no warning tier. Trace declarations and callers before reporting a count. Assess interface ownership with the criteria below, including units already within the cap; a compliant count does not establish a good design.
+3. Inspect every scoped conditional expression for nesting using the rule below. Record each outer expression once.
+4. Measure complexity once with `scripts/measure_complexity.py` (details under "Complexity limits"), passing any stricter limit the repository documents, and check the diff for ways around the limits. For Godot scope, also run `scripts/godot_interface.py` with the same range.
+5. Work through each in-scope reference's performance categories in order. Mark categories inapplicable where the code lacks those features. Read the detailed rule before validating a candidate, and trace the affected execution paths.
+6. Validate candidates against actual code and configuration. Pedro's explicit preferences govern the audit; performance guidance informs applicable recommendations. A category's impact label is an investigation priority, not automatic finding severity. Account for compiler and engine optimizations, bundler and export configuration, and framework support. Distinguish measured costs from inferred costs. Performance and ownership findings need a concrete consequence or justified opportunity. A syntactically confirmed nested conditional is sufficient for its readability finding, and a measured complexity excess is sufficient for a complexity violation.
 
-For difficult prop types, use the repository's installed TypeScript compiler if useful, loading a project once per audit rather than once per file. Keep unresolved contracts visible instead of guessing counts. Use focused checks when they resolve a candidate; do not turn a static audit into a full build, benchmark, or browser run without a concrete need.
+Use a language's own compiler or parser when it resolves a hard contract, loading each project once per audit rather than once per file. Keep unresolved contracts visible instead of guessing counts. Use focused checks when they resolve a candidate; turn a static audit into a full build, benchmark, game run, or browser run only for a concrete need.
 
-## Nested ternaries
+## Nested conditional expressions
 
 Flag `pedro/no-nested-ternary` whenever one conditional expression contains
-another conditional expression in its condition, true branch, or false branch.
-This includes chained forms such as `a ? b : c ? d : e`, nested JSX expressions,
-and nesting hidden by parentheses. Multiple independent ternaries in one
-statement are not nested unless one contains another.
+another in its condition or either branch: `a ? b : c ? d : e` in JS, TS, and
+PHP, `x if a else (y if b else z)` in Python and GDScript, nested JSX or
+Svelte template expressions, and nesting hidden by parentheses. Independent
+conditionals in one statement are not nested unless one contains another.
+Shorthand operators (`??`, PHP's `?:`) are not conditional expressions.
 
 This is Pedro's readability preference, not a repository standard or a claim
 about the team's conventions. Report it as Low-priority advisory feedback and
@@ -55,63 +61,65 @@ or a measured performance problem, report that separately under the applicable
 rule.
 
 Recommend the smallest clearer form for the surrounding code: an early return,
-named helper, `if`/`else`, `switch`, or lookup table. Preserve branch laziness,
-evaluation order, type narrowing, and rendered JSX. Record one finding for the
-outer expression rather than one finding per nested node.
+named helper, `if`/`else`, `switch`/`match`, or lookup table. Preserve branch
+laziness, evaluation order, type narrowing, and rendered output. Record one
+finding for the outer expression rather than one finding per nested node.
 
 ## Complexity limits
 
-Cognitive complexity above **8** and cyclomatic complexity above **16** are violations; eight and sixteen pass. These are enforced standards, not suggestions: NJ Homes Next (`apps/web/.oxlintrc.json`) and Receipt Hub (`.oxlintrc.json`) fail lint on `dca/cognitive-complexity` max 8 and classic `complexity` max 16. Never call an excess advisory or optional. Use the repository's configured metric definitions and file scope where available, including their treatment of nested functions and colocated tests. Measure with the bundled script instead of building a lint configuration by hand:
+Cognitive complexity above **8** and cyclomatic complexity above **16** are violations; eight and sixteen pass. Where the repository sets a stricter limit, the stricter limit wins: NJ Homes Next and Receipt Hub fail lint on `dca/cognitive-complexity` max 8 and classic `complexity` max 16; hexstead documents cyclomatic 8 in `AGENTS.md`. Never call an excess advisory or optional. Cognitive complexity follows the SonarSource whitepaper (v1.7) in every language; cyclomatic follows ESLint's classic `complexity`. Each reference lists its language's mappings. Measure with the bundled script instead of scoring by hand:
 
 ```sh
 <this skill's directory>/scripts/measure_complexity.py BASE HEAD   # committed range
 <this skill's directory>/scripts/measure_complexity.py BASE        # working tree vs BASE
+<this skill's directory>/scripts/measure_complexity.py EMPTY HEAD  # whole repository
 ```
 
-It diffs from `merge-base(BASE, HEAD)`, copies each changed file's `.oxlintrc.json` complexity rules (with their overrides, ignore patterns, and the repo's `dca` jsPlugin) into a temporary config with max 0, runs the repository's own oxlint (through `~/.local/bin/host-check` when that exists) with `--format json`, and prints every changed function's cognitive and cyclomatic score against 8 and 16. For each function over a limit, a second pass with the repository's real rule values tags it `[lint: error]`, `[lint: warning]`, or `[lint passes]`. Do not call it inside another host-check. It ends with `Result: N functions over threshold among M changed functions … (X fail the repository's lint, Y pass it)`; `0 functions over threshold` is a clean, complete measurement. Use `--over-only` for a large range and `--all` to include unchanged functions in changed files. For a whole-repository scope, pass `EMPTY` as BASE. Do not re-derive the setup: oxlint 1.80 prints nothing on a clean default-format run, and the repo plugin reports a function only when its score exceeds `max`, so scores of 0 are absent by design. If the script fails, report its error and mark complexity coverage incomplete rather than estimating a score.
+Pass `--cognitive-limit N` or `--cyclomatic-limit N` for a stricter limit the repository documents outside lint configuration (an `AGENTS.md` rule, a custom check script); the script ignores a looser value. It reads oxlint configs and Python's ruff, flake8, and complexipy limits itself. It diffs from `merge-base(BASE, HEAD)`, sends each changed file to its language's measurer, and prints every changed function's scores against the effective limits:
+
+- **JS, TS, Svelte, Vue, Astro**: the repository's oxlint with the complexity rules from the file's `.oxlintrc.json` at max 0. A config with no cognitive rule gets fleet's `pbp/cognitive-complexity` plugin, which scores identically to `dca/cognitive-complexity`; files no config owns use the skill's own oxlint. A second pass with the repository's real rules tags each excess `[lint: error]`, `[lint: warning]`, or `[lint passes]`.
+- **Python, GDScript, PHP**: the skill's analyzers, tagged `[not lint-checked]`. GDScript needs a Python with gdtoolkit (the repository's virtualenv, `PBP_GDTOOLKIT_PYTHON`, or the setup the coverage note prints); PHP needs `php` on `PATH`.
+
+Run it once through the host's validation queue, never inside another host-check. It ends with `Result: N functions over threshold among M changed functions in F changed source files (...)`, followed by an `INCOMPLETE:` line when any changed file went unmeasured; `0 functions over threshold` with no `INCOMPLETE:` line is a complete measurement. Use `--over-only` for a large range and `--all` to include unchanged functions in changed files. If the script fails or a coverage note says files were not measured, report it and mark complexity coverage incomplete rather than estimating a score.
 
 Classify each excess by its tag, recording the actual score, limit, function, and location. If both limits are exceeded in one function, report one finding naming both rules and scores.
 
 - `[lint: error]`, or `[lint: warning]` where the lint script runs `--deny-warnings` (NJ Homes Next does): a **High / lint failure**. The PR fails lint until it is fixed; name the failing rule and point to the lint result rather than re-arguing the score.
-- `[lint passes]`: a **Medium / violation** that the repository's lint lets through. The script's coverage notes name the cause, such as a config that sets a looser max (DCAid uses 12 and 24) or keeps a rule at warning level. Report the gap in the config alongside the finding.
-- Files the script could not score are not passes. A repository's deliberate scope exclusion, such as Receipt Hub turning both rules off for tests, evals, and generated code, is listed as out of scope in coverage. A file with no owning config, or a config without a cognitive rule, is a coverage gap.
+- `[lint passes]` or `[not lint-checked]`: a **Medium / violation**. When the repository's own check also fails it (for example hexstead's `tools/validate.sh`), it is a High / lint failure. When the repository's checker scores the same function differently, report the skill's measurement and name the difference; hexstead's `check_gdscript.py`, for one, skips `and`/`or` between plain names. For `[lint passes]`, the coverage notes name the config gap (a looser max such as DCAid's 12 and 24, a warning-level rule); report it alongside the finding.
+- Files the script could not score are not passes. A repository's deliberate scope exclusion, such as Receipt Hub turning both rules off for tests, evals, and generated code, is listed as out of scope in coverage. A file with no measurer is a coverage gap.
 
-Lint guarantees the number, so the audit's main job in an enforced repository is the ways around it. Inspect the diff for each, and report each as `pedro/complexity-evasion` at the priority of the excess it hides:
+Lint guarantees the number where it runs, so the audit's main job in an enforced repository is the ways around it. Inspect the diff for each, and report each as `pedro/complexity-evasion` at the priority of the excess it hides:
 
-- New `oxlint-disable`, `oxlint-disable-next-line`, or `eslint-disable` comments naming `complexity`, `*/cognitive-complexity`, or `max-lines`, including a file-level disable or one that names no rule.
-- `.oxlintrc.json` changes that raise a complexity `max`, lower its level, turn it off, remove paths from an override's `files`, or add `ignorePatterns` covering application code.
-- Splits made only to pass lint: a helper that receives the caller's state and returns a flag the caller branches on again, branches that move into a lookup or callback map without becoming simpler, or one-use functions whose names restate their bodies. Compare the before and after control flow; a split that leaves the reader tracing the same decisions across more functions is evasion even though both scores pass.
+- New suppressions naming a complexity or file-length rule (`complexity`, `*/cognitive-complexity`, `max-lines`, `C901`, gdlint's `max-file-lines`): `oxlint-disable`, `eslint-disable`, `# noqa`, `# gdlint: disable=`, `@phpstan-ignore`, including file-level suppressions and ones that name no rule.
+- Configuration changes that raise a complexity max, lower its level, turn it off, narrow its file scope, add ignore patterns covering application code, or add entries to a complexity allowlist.
+- Splits made only to pass: a helper that receives the caller's state and returns a flag the caller branches on again, branches that move into a lookup or callback map without becoming simpler, or one-use functions whose names restate their bodies. Compare the before and after control flow; a split that leaves the reader tracing the same decisions across more functions is evasion even though both scores pass.
 
-Recommend a smaller named function or flatter control flow (early returns, a domain helper that owns a decision, a lookup that replaces a real case analysis) that preserves behavior, branch laziness, and type narrowing. Do not suggest a split that only lowers a number.
+Recommend a smaller named function or flatter control flow (early returns, a domain helper that owns a decision, a lookup that replaces a real case analysis) that preserves behavior, branch laziness, and type narrowing. Recommend a split only when it simplifies the reader's path, never to lower a number.
 
-## Component ownership and composition
+## Interface ownership
 
-Keep prop counting and interface quality separate. A nested object still counts as one top-level prop. Do not recommend grouping fields solely to reach eight, or approve a refactor solely because its count fell. Assess whether callers have fewer decisions to make and less implementation detail to coordinate.
+Keep the interface count and interface quality separate. A nested object or structured value still counts as one input. Recommend grouping only when the group is a real concept, and approve a refactor for the coordination it removes rather than for a lower count. Assess whether callers have fewer decisions to make and less implementation detail to coordinate.
 
-Trace object creation at callers and consumption in the component. For a refactor, compare both sides before and after when history is available. For an existing interface, ground the assessment in its current callers rather than guessing why it was written.
+Trace values from where callers create them to where the unit consumes them. For a refactor, compare both sides before and after when history is available. For an existing interface, ground the assessment in its current callers rather than guessing why it was written.
 
-- Keep cohesive values such as income amount plus period, a link's label plus destination, or an existing domain entity. Presentation models and copy/style groups can also be useful when they provide a clear contract. Object creation at a call site or immediate destructuring alone is not a defect.
-- Investigate bags that merely regroup independent fields while callers still coordinate the same callbacks, refs, IDs, or matching visual settings. Names such as `actions`, `options`, and `appearance` neither prove nor disprove cohesion. Report the concrete burden, not the name or nesting depth.
-- Prefer removing dependencies: derive internal IDs and settings inside their owner, pass a field's resolved error instead of whole-form validation, combine operations that must happen together, and use explicit variants for fixed combinations. Use children or focused slots when the caller owns the rendered content.
-- Move behavior with its lifecycle. If a component takes ownership of timers, subscriptions, focus, or interaction state, explain how cancellation, cleanup, navigation, and accessibility remain correct. Introduce hooks, context, or compound components only when they reduce actual coordination; moving the same bag into context is not sufficient.
+- Keep cohesive values: an amount with its period, a link's label with its destination, an existing domain entity, a typed Resource of related settings. Presentation models and copy or style groups can also be useful when they provide a clear contract. Object creation at a call site or immediate destructuring alone is not a defect.
+- Investigate bags that merely regroup independent fields while callers still coordinate the same callbacks, signals, references, IDs, or matching settings. Names such as `actions`, `options`, and `appearance` neither prove nor disprove cohesion. Report the concrete burden, not the name or nesting depth.
+- Prefer removing dependencies: derive internal IDs and settings inside their owner, pass a resolved value instead of the whole source it came from, combine operations that must happen together, and use explicit variants for fixed combinations.
+- Move behavior with its lifecycle. If a unit takes ownership of timers, subscriptions, focus, signal connections, or interaction state, explain how cancellation, cleanup, navigation, freeing, and accessibility remain correct. Introduce shared state (context, stores, autoloads) only when it reduces actual coordination; moving the same bag into shared state is not sufficient.
 
-Before recommending an interface change, answer: **Would we choose this interface without the eight-prop limit?** Name the responsibility that moves, the caller work that disappears, or the meaningful concept the object models. If none applies, report the excessive contract as an unresolved design issue rather than proposing a cosmetic fix. Keep the cap and no-warning policy; do not flatten nested fields into a second numerical limit.
-
-Examples: replacing `ctaLabel` and `ctaHref` with a cohesive `cta` is reasonable; replacing seventeen independent inputs with eight bags is insufficient. A dialog that owns its refs, focus handling, and motion removes real caller obligations. A seasonal card that derives its icon and colors from `season` removes decisions that an `appearance` bag merely transports.
-
-When a candidate needs deeper composition guidance, read the installed [Vercel composition patterns](~/.agents/skills/vercel-composition-patterns/SKILL.md) and the relevant detailed rules. Preserve application behavior when recommending changes.
+Before recommending an interface change, answer: **Would we choose this interface without the eight-input limit?** Name the responsibility that moves, the caller work that disappears, or the meaningful concept the grouped value models. If none applies, report the excessive contract as an unresolved design issue rather than proposing a cosmetic fix. Keep the cap and no-warning policy; do not flatten nested fields into a second numerical limit. Each reference shows its language's ownership patterns and examples.
 
 ## Combined report
 
 Lead with the most consequential confirmed findings. For each, include:
 
-- Category and rule ID, using `pedro/eight-prop-cap` for count violations, `pedro/component-ownership` for evidenced interface design findings, `pedro/cognitive-complexity` and `pedro/cyclomatic-complexity` for complexity violations (naming the repository rule, such as `dca/cognitive-complexity`, when lint fails), `pedro/complexity-evasion` for suppressions, loosened config, or splits made only to pass, and `pedro/no-nested-ternary` for the advisory readability preference.
-- Clickable file and line, component or function, and concrete evidence.
+- Category and rule ID: `pedro/eight-prop-cap` for React and Svelte component count violations, `pedro/godot-interface-cap` for Godot script count violations, `pedro/component-ownership` for evidenced interface design findings, `pedro/cognitive-complexity` and `pedro/cyclomatic-complexity` for complexity violations (naming the repository rule, such as `dca/cognitive-complexity`, when lint fails), `pedro/complexity-evasion` for suppressions, loosened config, or splits made only to pass, `pedro/no-nested-ternary` for the advisory readability preference, and the reference's rule ID for performance findings.
+- Clickable file and line, unit (component, scene script, function), and concrete evidence.
 - Impact and a focused recommendation; distinguish policy violations from performance defects or optimization opportunities.
 
-For prop violations, include the exact count and counted application prop names, or a proven lower bound when the complete contract is unknown. Order prop violations by count within that category. For interface recommendations, show a concise proposed caller or before/after contract and explain what responsibility or coordination it removes. Distinguish a count violation from an ownership finding even when they concern the same component; combine their explanation when the root cause is shared.
+For cap violations, include the exact count and the counted input names, or a proven lower bound when the complete contract is unknown. Order cap violations by count within each rule. For interface recommendations, show a concise proposed caller or before/after contract and explain what responsibility or coordination it removes. Distinguish a count violation from an ownership finding even when they concern the same unit; combine their explanation when the root cause is shared.
 
-Finish with inspected file/component counts, a compact status for all eight Vercel categories, checks actually performed, and unresolved contracts or coverage gaps. Categories may be reviewed with no findings, have findings, be inapplicable, or remain incomplete. Claim a clean audit only for fully inspected scope with no confirmed findings and no unresolved relevant contracts. An agent audit is not a deterministic enforcement guarantee.
+Finish with inspected unit counts per language, a compact status for every performance category of every in-scope reference, checks actually performed, and unresolved contracts or coverage gaps. Categories may be reviewed with no findings, have findings, be inapplicable, or remain incomplete. Claim a clean audit only for fully inspected scope with no confirmed findings and no unresolved relevant contracts. An agent audit is not a deterministic enforcement guarantee.
 
 ## GitHub publication
 
@@ -127,9 +135,9 @@ Use this comment structure, replacing the placeholders with actual results:
 ## Pedro best practices
 
 > [!WARNING]
-> Found N confirmed findings: X prop-cap violations, Y ownership findings, C complexity violations (L failing lint), E complexity evasions, Z readability advisories, and W performance findings. Coverage: complete/incomplete.
+> Found N confirmed findings: X interface-cap violations, Y ownership findings, C complexity violations (L failing lint), E complexity evasions, Z readability advisories, and W performance findings. Coverage: complete/incomplete.
 
-Reviewed `<sha>` · Scope: <repo/path/PR changes> · Base: <base if applicable>
+Reviewed `<sha>` · Scope: <repo/path/PR changes> · Languages: <languages in scope> · Base: <base if applicable>
 Working tree: <clean or local changes included>
 
 | ID | Priority / kind | Rule | Location | Finding and recommendation |
@@ -138,31 +146,24 @@ Working tree: <clean or local changes included>
 
 ### Evidence
 
-<Counted prop names, focused before/after examples, and measured versus inferred performance costs, keyed to finding IDs. Omit this section if the table contains all necessary evidence.>
+<Counted input names, focused before/after examples, and measured versus inferred performance costs, keyed to finding IDs. Omit this section if the table contains all necessary evidence.>
 
 ### Coverage
 
 | Check | Result |
 | --- | --- |
-| Eight-prop cap | <result> |
-| Component ownership | <result> |
-| Nested ternaries | <result> |
-| Cognitive complexity (limit 8) | <result; say whether the repo's lint enforces 8 or the audit measured it> |
-| Cyclomatic complexity (limit 16) | <result; same> |
+| Interface cap (per language) | <result> |
+| Interface ownership | <result> |
+| Nested conditionals | <result> |
+| Cognitive complexity (limit 8, or the repository's stricter limit) | <result; say whether lint enforces it or the audit measured it> |
+| Cyclomatic complexity (limit 16, or the repository's stricter limit) | <result; same> |
 | Complexity evasion | <suppressions, config changes, and split-only refactors checked> |
-| Waterfalls | <result> |
-| Bundle size | <result> |
-| Server performance | <result> |
-| Client fetching | <result> |
-| Rerenders | <result> |
-| Rendering | <result> |
-| JavaScript performance | <result> |
-| Advanced patterns | <result> |
+| <Each performance category of each in-scope reference> | <result> |
 
-Inspected: <file/component counts>. Checks performed: <actual checks>.
-Coverage gaps: <unresolved contracts, local-only evidence, or unmeasured costs>.
+Inspected: <unit counts per language>. Checks performed: <actual checks>.
+Coverage gaps: <unresolved contracts, unmeasured files, languages without a reference, local-only evidence, or unmeasured costs>.
 ```
 
-Choose the alert from the result: `[!CAUTION]` when a complexity excess fails the repository's lint; `[!WARNING]` when other confirmed policy, complexity, ownership, or performance findings exist; `[!NOTE]` when the only findings are nested-ternary advisories; `[!IMPORTANT]` for incomplete coverage with no findings; and `[!NOTE]` for no findings with complete static coverage. The warning alert is a report summary, not a seven/eight-prop warning tier. When no findings exist, say so and omit the findings table rather than inventing rows. Escape pipes inside table cells and keep long evidence outside the table. Avoid implying that a static audit is CI enforcement or a runtime performance measurement.
+Choose the alert from the result: `[!CAUTION]` when a complexity excess fails the repository's lint; `[!WARNING]` when other confirmed policy, complexity, ownership, or performance findings exist; `[!NOTE]` when the only findings are nested-conditional advisories; `[!IMPORTANT]` for incomplete coverage with no findings; and `[!NOTE]` for no findings with complete static coverage. The warning alert is a report summary, not a seven/eight-input warning tier. When no findings exist, say so and omit the findings table rather than inventing rows. Escape pipes inside table cells and keep long evidence outside the table. Avoid implying that a static audit is CI enforcement or a runtime performance measurement.
 
 Use the available GitHub connector or `gh` to post. For `gh`, write the exact Markdown to a temporary file and use `--body-file` with the verified repository and PR number. On an uncertain response or retry, read the PR comments first and reuse the already-published comment for this run rather than duplicating it. A later intentional audit gets a new comment; preserve previous audit history. Verify the published body and return its URL with the main findings in the conversation. If publication fails, retain the prepared report, explain the failure, and do not claim it was posted.
