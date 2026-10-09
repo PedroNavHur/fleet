@@ -4,6 +4,7 @@
 .local/bin/axe-review                   skills/axe-review/scripts/scan.mjs
 .local/bin/host-check                   bin/host-check
 .local/bin/bg-job                       bin/bg-job
+.local/bin/idle-compact                 bin/idle-compact
 .local/lib/host-check                   lib/host-check
 .config/fleet/host.json                 hosts/{host}/host.json
 .config/t3-orchestration.md             config/t3-orchestration.md

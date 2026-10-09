@@ -38,6 +38,7 @@ fleet/bin/sync --apply    # pull, link own skills, install and update third-part
 | --- | --- |
 | `~/.local/bin/host-check` | `bin/host-check`: the shared validation queue |
 | `~/.local/bin/bg-job` | `bin/bg-job`: long jobs that outlive the agent session |
+| `~/.local/bin/idle-compact` | `bin/idle-compact`: idle Claude threads in T3 to compact before their prompt cache expires |
 | `~/.local/lib/host-check/` | `lib/host-check/`: `guard.py` (command guard and job classes), tests, OpenCode plugin |
 | `~/.config/t3-orchestration.md` | `config/t3-orchestration.md` |
 | `~/.config/host-validation.md` | generated from `config/host-validation.md` plus `hosts/<machine>/host-validation.md` |
@@ -54,3 +55,15 @@ cd skills/pedro-best-practices/tests && python3 -m unittest test_complexity test
 ```
 
 A skill with a `package.json` gets its dependencies from `bin/sync` (`pnpm install --frozen-lockfile`); `pedro-best-practices` uses that for its own oxlint. Its GDScript and PHP tests skip, with a reason, on machines without gdtoolkit or `php`; set `PBP_GDTOOLKIT_PYTHON` to a Python that has gdtoolkit to run them.
+
+## Idle compaction
+
+Claude Code caches a conversation for an hour after each request. Compacting a large Claude thread after that hour writes its whole context to the cache again, so each machine runs a janitor: a Claude Haiku 5.5 thread in T3 Code that sends `/compact` to the threads `idle-compact due` lists, a few minutes before their cache expires. The rules for which threads qualify are in `bin/idle-compact`; the minimum is 150K tokens (`IDLE_COMPACT_MIN_TOKENS`), and settled threads are left alone.
+
+To set one up, open a Haiku thread on the machine and send it:
+
+> Create a scheduled task bound to this thread that runs every 5 minutes, titled "Idle compaction", with this prompt:
+>
+> Idle compaction run. Run `idle-compact due --json`. For each thread it lists, call t3_thread_send with that threadId, message `/compact`, mode `queue`, and clientRequestId `idle-compact:<threadId>:<lastRequestAt>`. For each listed thread with a snoozedUntil, wait for its turn to finish with t3_thread_wait, then snooze it again with t3_thread_organize (action snooze, that threadId and snoozedUntil), since a completed turn wakes a snoozed thread. Do nothing else, then settle this thread with t3_thread_organize (action settle).
+
+`idle-compact report` lists each compaction from the last week with its size and whether it ran before the cache expired.
