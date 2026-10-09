@@ -8,44 +8,24 @@
       "humanizer"
     ],
     "cloudflare/skills": [
-      "agents-sdk",
-      "cloudflare",
-      "cloudflare-email-service",
-      "cloudflare-one",
-      "cloudflare-one-migrations",
-      "durable-objects",
-      "sandbox-stable",
-      "turnstile-spin",
-      "web-perf",
-      "workers-best-practices",
-      "wrangler"
+      "cloudflare"
     ],
     "mattpocock/skills": [
-      "ask-matt",
-      "chief-of-staff",
-      "claude-handoff",
       "code-review",
       "codebase-design",
       "diagnosing-bugs",
       "domain-modeling",
-      "git-guardrails-claude-code",
       "grill-me",
       "grill-with-docs",
       "grilling",
       "handoff",
       "implement",
-      "implement-spec",
       "improve-codebase-architecture",
-      "loop-me",
-      "migrate-to-shoehorn",
       "pr",
       "prototype",
       "research",
       "retro",
-      "scaffold-exercises",
       "setup-matt-pocock-skills",
-      "setup-pre-commit",
-      "setup-ts-deep-modules",
       "tdd",
       "teach",
       "to-questionnaire",
@@ -55,10 +35,7 @@
       "wait-what",
       "wayfinder",
       "wizard",
-      "writing-beats",
-      "writing-for-agents",
-      "writing-fragments",
-      "writing-shape"
+      "writing-for-agents"
     ],
     "openai/skills": [
       "linear"
@@ -73,13 +50,6 @@
       "vercel-composition-patterns",
       "vercel-react-best-practices",
       "web-design-guidelines"
-    ],
-    "vercel-labs/skills": [
-      "find-skills"
-    ],
-    "wshobson/agents": [
-      "tailwind-design-system",
-      "typescript-advanced-types"
     ]
   }
 }
