@@ -7,8 +7,8 @@
    Give every installed skill that sets the former, and ships no openai.yaml,
    one that says the same thing, so Codex matches Claude Code and Cursor.
    Updates replace skill folders, so this runs on every sync.
-2. Write ~/.config/principles.md: one line per installed principle-* skill,
-   saying when it applies and where its SKILL.md is.
+2. Write ~/.config/principles.md: one line per principle-* skill, from pstack
+   or from this repo, saying when it applies and where its SKILL.md is.
 3. Point each agent's global instructions at that index, inside a marked
    block this script owns.
 
@@ -101,8 +101,9 @@ def index_text():
         "file in full before applying the principle.",
         "",
     ]
-    for skill in installed():
-        if skill.name.startswith("principle-"):
+    # Own principles are symlinks from this repo, so list every folder.
+    for skill in sorted(SKILLS.glob("principle-*")):
+        if skill.is_dir():
             description = frontmatter(skill).get("description", "")
             lines.append(f"- **{skill.name[len('principle-'):]}**: {description} "
                          f"`~/.agents/skills/{skill.name}/SKILL.md`")
