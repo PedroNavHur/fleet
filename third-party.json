@@ -3,6 +3,7 @@
   "sources": {
     "backnotprop/pstack": [
       "benchmark-checklist",
+      "bro",
       "principle-attack-the-premise",
       "principle-boundary-discipline",
       "principle-build-the-lever",
