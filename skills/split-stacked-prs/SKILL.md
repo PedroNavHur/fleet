@@ -180,8 +180,8 @@ refresh run once, after the last round. Gating every layer and pushing after
 each round costs 25 to 75 minutes on this host, even for a three-line fix.
 
 2. Review the local layer heads (`git rev-parse` of each stack branch), not the
-   pushed ones. Run `pedro-best-practices` audits local-only until the publish
-   step, and post on the PRs only from the round that gets published.
+   pushed ones. Run `pedro-best-practices` audits local-only; a review loop
+   posts its results after the push (`review-loop` step 5).
 3. Make all fixes on one branch off the top (the fixed source), then carry them
    down into their layers from a worktree where no stack branch is checked out:
 
@@ -202,7 +202,7 @@ each round costs 25 to 75 minutes on this host, even for a three-line fix.
 5. Publish when the user asks to push or a round comes back without accepted
    findings: run `layer_gates.sh` under `bg-job` (see `host-validation.md`),
    then `refresh_stack.py --gates "$LOG_DIR" --update-prs`, then
-   `gh stack push` once, then post that round's audits.
+   `gh stack push` once.
 
 For a single later fix, change and push only the layer that owns the code;
 restack descendants only when their dependency changed or the user asks.

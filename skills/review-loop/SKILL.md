@@ -8,13 +8,16 @@ disable-model-invocation: true
 
 Run `code-review` and `pedro-best-practices` in rounds, fix what they confirm,
 and re-review only the **delta**, until a round comes back clean. The user is
-asked only for the decisions that are theirs. Everything stays local until the
-publish step.
+asked only for the decisions that are theirs. Code stays local until the push
+step; the loop's results go on each PR as one generated comment.
 
-Set `SKILL_DIR` to this skill's absolute directory. Read before starting:
+`scripts/loop.py` owns everything reviewers and readers see: the reviewer
+briefs, the findings check, the triage record, and the PR comment. Reviewers
+follow `reviewer.md`. Set `SKILL_DIR` to this skill's absolute directory and
+`LOOP` to the loop directory. Read before starting:
 `~/.config/t3-orchestration.md` (dispatch),
 `~/.config/host-validation.md` (checks, `bg-job`), and for a stack
-`split-stacked-prs` section 7, which owns carrying fixes and publishing.
+`split-stacked-prs` section 7, which owns carrying fixes and pushing.
 
 ## Invocation
 
@@ -23,24 +26,28 @@ same target, else ask once:
 
 - **Target**: a PR, a stack (its top PR or branch), or a local branch with its base.
 - **Reviewer** model and effort, and **worker** model and effort for fixes.
-- **Publish**: whether a converged loop pushes (default: stop locally and report).
+- **Push**: whether a converged loop pushes (default: stop locally and report).
 - **Round cap**: default 5, the first full round included.
 
 ## The ledger
 
-`~/.cache/review-loop/<target-slug>/ledger.md` is the single source of truth
-for the loop's history; reviewers get it every round, and round directories
-`r1/`, `r2/`, ... sit beside it. It holds:
+`LOOP` is `~/.cache/review-loop/<target-slug>/`. Reviewers read its ledger and
+outcomes every round, so a lost session resumes from the files, not from
+memory:
 
-- **Settled**: every finding fixed (with its commit) or declined (with the
-  reason), and every user ruling. Reviewers never re-raise a settled item.
-- **Open decisions** for the user, each with your recommendation.
-- **Heads** per round: `rN/heads.tsv`, one line per PR bottom to top,
+- `ledger.md`: the target, the invocation settings, standing decisions and
+  user rulings, and one line per round.
+- `outcomes.jsonl`: each finding's triage result, written only by
+  `loop.py outcome`. A finding with an outcome is settled; reviewers never
+  re-raise it.
+- `rN/heads.tsv`: one line per PR, bottom to top,
   `PR<TAB>LAYER<TAB>BASE_SHA<TAB>HEAD_SHA` (layer = manifest name; for a single
-  branch, one line).
+  branch, one line). Use the PR number when the PR exists; the comment goes
+  only to numbered PRs.
+- `rN/reviewers.tsv` and `rN/<reviewer>.json`: written by `loop.py brief` and
+  by the reviewers.
 
-Update the ledger at the end of every step that changes it, so a lost session
-resumes from the file, not from memory.
+Update the ledger at the end of every step that changes it.
 
 ## Steps
 
@@ -59,40 +66,51 @@ delta, or skipped.
 
 ### 2. Dispatch reviewers
 
-Write one shared packet (`rN/common.md`): read-only rules (write only to the
-named output file under `rN/`; no edits, commits, pushes, or GitHub/Linear
-changes), the checkout path and the instruction to read code at pinned SHAs
-with `git show`/`git diff`, the base, the spec path, the gates already passed,
-standing decisions, and the ledger. Standards and delta reviewers also get the
-principles from `~/.config/principles.md` that match the diff, as standards
-ranked below the repo's documented ones. Then launch every reviewer at once through
-`delegate_task`, `mode: "async"`, `clientRequestId` `<slug>-rN-<role>-<pr>`:
+Write the round's facts to `rN/common.md`: the checkout path, the pinned
+base and heads, the spec path, the repository's standards sources, the gates
+already passed, operational constraints, and the principles from
+`~/.config/principles.md` that match the diff. `reviewer.md` carries the rules,
+methods, and output format; the packet holds only what is true of this run.
 
-- **Whole**: per stack (or branch), one `code-review` Standards and one Spec
-  reviewer; per PR, one `pedro-best-practices` audit, local-only.
-- **Delta**: per stack, one reviewer covering Standards and Spec on the delta
-  diffs; per PR whose delta has `audit=yes`, one local-only audit. The
-  brief: confirm each fix in the delta is correct and complete, then look for
-  regressions it causes in the code around it (callers, tests, sibling
-  layers). The rest of the PR was reviewed in an earlier round.
+Pick the reviewers:
 
-Done when every reviewer is launched and its `taskId` is in `rN/tasks.tsv`.
-End the turn; completions wake you.
+- **Whole** (round 1, or a PR new since the last round): one `standards` and
+  one `spec` reviewer for the stack or branch, and one `audit` per PR.
+- **Delta**: one `delta` reviewer for the PRs with a delta, and one
+  `audit --delta` per PR whose delta has `audit=yes`.
+
+For each, generate its task:
+
+```bash
+python3 "$SKILL_DIR/scripts/loop.py" brief "$LOOP" N ROLE --model "MODEL EFFORT" \
+  [--pr PR ...] [--delta] --checkout "$checkout"
+```
+
+Launch them all at once through `delegate_task`, `mode: "async"`, with the
+reviewer model, `clientRequestId` `<slug>-rN-<reviewer name>`, and the brief's
+output, verbatim, as the task. Done when every reviewer is launched and its
+`taskId` is in `rN/tasks.tsv`. End the turn; completions wake you.
 
 ### 3. Triage
 
+Run `python3 "$SKILL_DIR/scripts/loop.py" check "$LOOP" N --checkout "$checkout"`.
+It validates every reviewer's file and lists the round's findings. A reviewer
+whose file fails goes back to its task with the check's output, through
+`delegate_task` with a new `clientRequestId`.
+
 Verify every finding against the code at its pinned SHA before it counts, and
-give it one class in `rN/validated.md`:
+classify it:
 
 - **Fix**: a confirmed bug (any P1 or P2), or any confirmed P3 that needs no
-  design or architecture decision.
+  design or architecture decision. Its outcome is recorded once it is committed.
 - **Decline**: unconfirmed, settled, pre-existing outside the change, or
-  contradicted by a ledger ruling. Record the reason in the ledger.
+  contradicted by a ruling: `loop.py outcome "$LOOP" ID declined --note REASON`.
 - **Decision**: product behavior, copy, scope, or a design or architecture
-  choice (including a P3 whose fix needs one). Add it to the ledger's open decisions with a recommendation, and
-  keep going with the rest.
+  choice (including a P3 whose fix needs one):
+  `loop.py outcome "$LOOP" ID decision --note RECOMMENDATION`. Keep going with
+  the rest.
 
-Done when every reviewer has reported and every finding has a class.
+Done when `check` passes and every finding is a Fix or has an outcome.
 
 ### 4. Converge or fix
 
@@ -106,8 +124,10 @@ go to step 5. Otherwise:
    `split-stacked-prs` section 7 step 4 (for a single branch, the same check
    on that branch).
 3. Commit. For a stack, carry the fixes into their layers with
-   `fix_layers.sh`. Record each fix in the ledger with its commit, then start
-   the next round at step 1.
+   `fix_layers.sh`. Record each fix with
+   `loop.py outcome "$LOOP" ID fixed --commit SHA`, using the commit on the
+   PR's own branch (for a stack, the layer commit). Then start the next round
+   at step 1.
 
 Post one short progress line to the user per round: round number, reviewers,
 confirmed findings, and fixes made.
@@ -115,13 +135,22 @@ confirmed findings, and fixes made.
 ### 5. Finish
 
 - **Open decisions**: ask them all in one `AskUserQuestion`, recommendation
-  first. A ruling that changes code reopens the loop at step 4 with one more
-  delta round, without counting against the cap.
-- **Publish** (when authorized, or when the user approves now): follow
-  `split-stacked-prs` section 7 step 5, then post each PR's most recent audit
-  per `pedro-best-practices`, stating which head it reviewed.
-- **Report**: a table of rounds (reviewers, confirmed, fixed, declined),
-  what's still open, and whether the loop converged or hit the cap; then local
-  versus pushed heads and the gate results.
+  first. Record each ruling with `loop.py outcome "$LOOP" ID ruled --note RULING`.
+  A ruling that changes code reopens the loop at step 4 with one more delta
+  round, without counting against the cap.
+- **Push** (when authorized, or when the user approves now): for a stack,
+  follow `split-stacked-prs` section 7 step 5; for a branch, run its gates and
+  push.
+- **Comment**: run
+  `python3 "$SKILL_DIR/scripts/loop.py" publish "$LOOP" --checkout "$checkout"`.
+  It posts each PR's comment when GitHub's head is the head the last round
+  reviewed, once per round, and says which PRs it skipped. A PR skipped for
+  local fixes gets its comment by running `publish` again after an approved
+  push. The comment covers the audits, so post no separate
+  `pedro-best-practices` comment.
+- **Report**: whether the loop converged or hit the cap, what is still open,
+  each PR's comment URL or why it was skipped, local versus pushed heads, and
+  the gate results. `loop.py render "$LOOP" PR --checkout "$checkout"` prints a
+  PR's rounds and findings tables.
 
 Merging and marking PRs ready stay with the user.
