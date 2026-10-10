@@ -14,7 +14,7 @@ The `principle-*` skills come from [pstack](https://github.com/backnotprop/pstac
 
 - gives each such skill an `agents/openai.yaml` with `allow_implicit_invocation: false`, because Codex ignores the frontmatter key;
 - writes `~/.config/principles.md`, one line per principle with when it applies and its path;
-- adds a marked block to `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, and `~/.config/opencode/AGENTS.md` telling agents to read that index before nontrivial code work.
+- writes a marked block into `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, and `~/.config/opencode/AGENTS.md`: the shared instructions in `config/instructions.md` plus a pointer to that index. Edit the shared rules there, never inside the block; a host's own instructions go outside it.
 
 `skills/principle-reach-for-what-exists` is fleet's own principle, written in the same format: the dependency ladder and `ceiling:` comments for deliberate shortcuts.
 

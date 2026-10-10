@@ -9,8 +9,9 @@
    Updates replace skill folders, so this runs on every sync.
 2. Write ~/.config/principles.md: one line per principle-* skill, from pstack
    or from this repo, saying when it applies and where its SKILL.md is.
-3. Point each agent's global instructions at that index, inside a marked
-   block this script owns.
+3. Write config/instructions.md and a pointer to that index into each
+   agent's global instructions, inside a marked block this script owns.
+   Instructions outside the block are the host's own.
 
 Prints one plan line per change, in bin/sync's format. With --apply, copies
 each instruction file into BACKUP_DIR before changing it.
@@ -34,16 +35,20 @@ CODEX_META = """\
 policy:
   allow_implicit_invocation: false
 """
-BLOCK_START = "<!-- fleet:principles (managed by fleet bin/sync) -->"
-BLOCK_END = "<!-- /fleet:principles -->"
-BLOCK = f"""{BLOCK_START}
+SHARED = Path(__file__).resolve().parents[2] / "config" / "instructions.md"
+BLOCK_START = "<!-- fleet:instructions (managed by fleet bin/sync from config/instructions.md) -->"
+BLOCK_END = "<!-- /fleet:instructions -->"
+PRINCIPLES = """## Engineering principles
+
 Before nontrivial code work (design, implementation, debugging, review), read
 `~/.config/principles.md` and apply the principles that fit. Read a
 principle's SKILL.md in full before applying it. When running `code-review`,
 add the principles that match the diff to the Standards sources, ranked below
 the repo's documented standards.
-{BLOCK_END}
 """
+# The block's earlier name; its contents now live in the instructions block.
+RETIRED_BLOCK = re.compile(r"<!-- fleet:principles .*?<!-- /fleet:principles -->\n?", re.S)
+BLOCK = re.compile(re.escape(BLOCK_START) + r".*?" + re.escape(BLOCK_END) + r"\n?", re.S)
 
 
 def short(path):
@@ -125,19 +130,26 @@ def write_index(apply, backup_dir):
         INDEX.write_text(text)
 
 
-def pointers(apply, backup_dir):
+def with_block(text, block):
+    """The text with the managed block in place of the current or retired one, else appended."""
+    for pattern in (BLOCK, RETIRED_BLOCK):
+        if pattern.search(text):
+            return pattern.sub(lambda _: block, text, count=1)
+    if not text:
+        return block
+    return text + ("\n" if text.endswith("\n") else "\n\n") + block
+
+
+def instructions(apply, backup_dir):
+    block = f"{BLOCK_START}\n{SHARED.read_text().rstrip()}\n\n{PRINCIPLES}{BLOCK_END}\n"
     for path in INSTRUCTIONS:
         if not path.parent.is_dir():
             continue
         text = path.read_text() if path.exists() else ""
-        pattern = re.compile(re.escape(BLOCK_START) + r".*?" + re.escape(BLOCK_END) + r"\n?", re.S)
-        if pattern.search(text):
-            updated = pattern.sub(lambda _: BLOCK, text)
-        else:
-            updated = text + ("\n" if text and not text.endswith("\n") else "") + ("\n" if text else "") + BLOCK
+        updated = with_block(text, block)
         if updated == text:
             continue
-        say("pointer", f"{short(path)}: read ~/.config/principles.md")
+        say("instruct", f"{short(path)}: shared instructions from config/instructions.md")
         if apply:
             backup(path, backup_dir)
             path.write_text(updated)
@@ -147,7 +159,7 @@ def main(argv):
     backup_dir, apply = Path(argv[0]), "--apply" in argv
     codex_meta(apply)
     write_index(apply, backup_dir)
-    pointers(apply, backup_dir)
+    instructions(apply, backup_dir)
 
 
 if __name__ == "__main__":
