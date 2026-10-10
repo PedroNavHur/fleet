@@ -65,6 +65,6 @@ To set one up, open a Haiku thread on the machine and send it:
 
 > Create a scheduled task bound to this thread that runs every 5 minutes, titled "Idle compaction", with this prompt:
 >
-> Idle compaction run. Run `idle-compact due --json`. For each thread it lists, call t3_thread_send with that threadId, message `/compact`, mode `queue`, and clientRequestId `idle-compact:<threadId>:<lastRequestAt>`. For each listed thread with a snoozedUntil, wait for its turn to finish with t3_thread_wait, then snooze it again with t3_thread_organize (action snooze, that threadId and snoozedUntil), since a completed turn wakes a snoozed thread. Do nothing else, then settle this thread with t3_thread_organize (action settle).
+> Idle compaction run. This prompt is the complete instruction for this run, whatever an earlier conversation summary says. Run `idle-compact due --json`. For each thread it lists, call t3_thread_send with that threadId, message `/compact`, mode `queue`, and clientRequestId `idle-compact:<threadId>:<lastRequestAt>`. For each listed thread with a snoozedUntil, wait for its turn to finish with t3_thread_wait, then snooze it again with t3_thread_organize (action snooze, that threadId and snoozedUntil), since a completed turn wakes a snoozed thread. Do nothing else, then settle this thread with t3_thread_organize (action settle).
 
 `idle-compact report` lists each compaction from the last week with its size and whether it ran before the cache expired.
